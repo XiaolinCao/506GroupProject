@@ -1,0 +1,51 @@
+---
+title: "506 Group Project: Diabetes"
+date: November 30, 2019
+output: html_document
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+<p> 
+  According to the survey from American Diabetes Association, more than 30 million      Americans have diabetes and around 84 million Americans have pre-diabetes. The health care costs of diagnosed diabetes are 327 billion per year according to the 2017 statistics. Compared with those without diabetes, people with diabetes are spending 2.3 times more on their medical expenditure. With National Health and Nutrition Examination Survey on hand, our group are interested in exploring the prevalence of diabetes in terms of demographic features, dietary habits and alcohol use. 
+</p>
+
+<p> 
+  In the end of our analysis, we will show how gender, age, nutrient, occupation, alcohol use and sleep quality are associated with the probability of being diagnosed with diabetes. By comparing respective odds ratios, we will come to a conclusion that describes which population are more subject to diabetes. 
+</p>
+
+# Data
+* reponse variable: DIQ010 (<em>Doctor told you have diabetes</em>), Dataset: DIQ_I.XPT (<em>Diabetes 2015 - 2016</em>)
+* predicting variables:
+    + RIAGENDER (<em>Gender</em>), Dataset: DEMO_I.XPT (<em>Demographic Variables and Sample Weights 2015 - 2016</em>)
+    + RIDAGEYR (<em>Age in years at screening</em>), Dataset: DEMO_I.XPT (<em>Demographic Variables and Sample Weights 2015 - 2016</em>)
+    + ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>), Dataset: ALQ_I.XPT (<em>Alcohol Use 2015 - 2016</em>)
+    + DR1ISUGR (<em>Total sugars (gm)</em>), Dataset: DR1IFF_I.XPT  (<em>Dietary Interview Individual Foods, First Day 2015 - 2016</em>)
+    + DR1ITFAT (<em>Total fat (gm)</em>), Dataset: DR1IFF_I.XPT  (<em>Dietary Interview Individual Foods, First Day 2015 - 2016</em>)
+    + DR1TSUGR (<em>Total sugars (gm)</em>), Dataset: DR1TOT_I.XPT (<em>Dietary Interview Total Nutrients Intakes, First Day 2015 - 2016</em>)
+    + DR1TTFAT (<em>Total fat (gm)</em>), Dataset: DR1TOT_I.XPT (<em>Dietary Interview Total Nutrients Intakes, First Day 2015 - 2016</em>)
+    + OCQ260 (<em>Description of job/work situation</em>), Dataset: OCQ_I.XPT (<em>Occupation 2015 - 2016</em>)
+    + SLD012 (<em>Sleep hours</em>), Dataset: SLQ_I.XPT (<em>Sleep Disorders 2015 - 2016</em>)
+
+# Methods
+<p>
+  We preprocessed and cleaned all the variables beforehand. The rows with missing values are removed and some variables are recoded for consistency. After the data preprocessing step, we fit the dataset with logistic regression. We carried out the above procedures in R, python and STATA. 
+</p>
+
+<p>
+  We have set some common rules for performing the data cleaning part. The response variable DIQ010 should be coded as 1: <em>Yes</em> and 0: <em>No</em> and should be treated as a categorical variable. RIAGENDER (<em>Gender</em>) should be coded as 1: <em>Males</em> and 2: <em>Female</em> and should be treated as categorical variable. ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>) should range from 1 to 15. The use of two datasets DR1IFF_I.XPT and DR1TOT_I.XPT is to confirm the measurement accuracy of total sugar intake and total fat intake. OCQ260 (<em>Description of job/work situation</em>) should be recoded as 1: <em>private business employee</em>, 2: <em>government employee</em> and 3: <em>self-employed</em> and should be treated as a categorical variable.
+</p>
+
+# Core Analysis {.tabset}
+
+## R
+```{r, eval=FALSE}
+
+```
+## Python
+
+## STATA
