@@ -211,7 +211,6 @@ In the end of our analysis, we will show how gender, age, nutrient, occupation, 
 </ul>
 </div>
 <div id="methods" class="section level1">
-
 <h1>Methods</h1>
 <p>
 We preprocessed and cleaned all the variables beforehand. The rows with missing values are removed and some variables are recoded for consistency. After the data preprocessing step, we fit the dataset with logistic regression. We carried out the above procedures in R, python and STATA.
@@ -224,12 +223,214 @@ We have set some common rules for performing the data cleaning part. The respons
 <h1>Core Analysis</h1>
 <div id="r" class="section level2">
 <h2>R</h2>
+<pre class="r"><code>library(haven)
+# read in all the datasets
+files = c(&quot;ALQ_I.XPT&quot;, &quot;DEMO_I.XPT&quot;, &quot;DIQ_I.XPT&quot;, 
+          &quot;DR1IFF_I.XPT&quot;, &quot;OCQ_I.XPT&quot;, &quot;SLQ_I.XPT&quot;, &quot;DR1TOT_I.XPT&quot;)
+das = list()
+for (f in files) {
+    dx = read_xpt(f)
+    das[[length(das)+1]] = dx
+}
+
+# store data
+alcohol = das[[1]]
+demo = das[[2]]
+diabete = das[[3]]
+dietary = das[[4]]
+occupation = das[[5]]
+sleep = das[[6]]
+total_nutrient = das[[7]]
+
+# clean variables 
+library(tidyverse)
+alcohol = alcohol %&gt;% 
+  select(SEQN, ALQ130)
+demo = demo %&gt;%
+  select(SEQN, RIAGENDR, RIDAGEYR)
+occupation = occupation %&gt;%
+  select(SEQN, OCQ260)
+diabete = diabete %&gt;%
+  transmute(SEQN, 
+            DIQ010 = ifelse(DIQ010 == 2, 0, DIQ010))
+
+# check if sums of one-day sugar and fat are equal to those of total nutrients dataset
+dietary = dietary %&gt;%
+  select(SEQN, DR1ISUGR, DR1ITFAT) %&gt;%
+  group_by(SEQN) %&gt;%
+  summarize(Tot_sugar = sum(DR1ISUGR),
+            Tot_fat = sum(DR1ITFAT))
+
+total_nutrient = total_nutrient %&gt;%
+  select(SEQN,DR1TSUGR, DR1TTFAT)
+
+total_nutrient
+dietary
+
+
+sleep = sleep %&gt;%
+  select(SEQN, SLD012)
+
+# join all the datasets
+df = left_join(sleep, 
+               left_join(occupation, 
+                         left_join(dietary, 
+                                   left_join(diabete, 
+                                             left_join(alcohol, demo, 
+                                                       by = &quot;SEQN&quot;), 
+                                             by = &quot;SEQN&quot;), 
+                                   by = &quot;SEQN&quot;), 
+                         by = &quot;SEQN&quot;), 
+               by = &quot;SEQN&quot;)
+
+# delete missing values
+missing = nrow(df) - nrow(df %&gt;% drop_na())
+cat(&quot;missing = &quot;, missing) # one third of the data is missing
+df = df %&gt;%
+  select(-SEQN) %&gt;%
+  drop_na() %&gt;%
+  filter(DIQ010 %in% c(0,1)) %&gt;%
+  filter( !(ALQ130 %in% c(777, 999)) ) %&gt;%
+  # only keep three occupation types
+  # change 'gender', 'occupation', and 'diabete' to factor
+  filter( !(OCQ260 %in% c(77,99,6)) ) %&gt;%
+  mutate( OCQ260 = ifelse(OCQ260 %in% c(2,3,4), 2, OCQ260),
+          OCQ260 = ifelse(OCQ260 == 5, 3, OCQ260),
+          OCQ260 = as.factor(OCQ260), 
+          DIQ010 = as.factor(DIQ010), 
+          RIAGENDR = as.factor(RIAGENDR))
+summary(df)
+
+# two-way contingency table
+xtabs(~DIQ010 + OCQ260, data = df)
+xtabs(~DIQ010 + RIAGENDR , data = df)
+# seems like occupation 1 has lower diabete percentage than 2 and 3
+
+# fit the model with logistic regression
+fit = glm(DIQ010 ~ ., data = df, family = &quot;binomial&quot;)
+summary(fit)</code></pre>
 </div>
 <div id="python" class="section level2">
 <h2>Python</h2>
 </div>
 <div id="stata" class="section level2">
 <h2>STATA</h2>
+<pre class="r"><code>* Import and merge ------------------------------------------------------------
+pwd
+cd C:\Users\xiaolc\Downloads
+pwd
+
+// response variables
+// diabetes
+fdause DIQ_I.XPT, clear
+quietly compress
+gsort +seqn
+keep seqn diq010
+save DIABETES.dta, replace
+
+// predicting variables
+// gender, age
+fdause DEMO_I.XPT, clear
+quietly compress
+gsort +seqn
+keep seqn riagendr ridageyr
+merge 1:1 seqn using DIABETES.dta
+
+keep if _merge == 3
+save DIA_DEMO.dta, replace
+
+// alcohol
+fdause ALQ_I.XPT, clear
+quietly compress
+gsort +seqn
+keep seqn alq130
+merge 1:1 seqn using DIA_DEMO.dta, generate(merge2)
+
+keep if merge2 == 3
+save DIA_DEMO_ALC.dta, replace
+
+// total sugars, total fat
+fdause DR1TOT_I.XPT
+quietly compress
+gsort +seqn
+keep seqn dr1tsugr dr1ttfat
+merge 1:1 seqn using DIA_DEMO_ALC.dta, generate(merge3)
+
+keep if merge3 == 3
+save DIA_DEMO_ALC_NUTR.dta, replace
+
+// occupation
+fdause OCQ_I.XPT, clear
+quietly compress
+gsort +seqn
+keep seqn ocq260
+merge 1:1 seqn using DIA_DEMO_ALC_NUTR.dta, generate(merge4)
+
+keep if merge4 == 3
+save DIA_DEMO_ALC_NUTR_OCU.dta, replace
+
+// sleep disorder
+fdause SLQ_I.XPT
+quietly compress
+gsort +seqn
+keep seqn sld012
+merge 1:1 seqn using DIA_DEMO_ALC_NUTR_OCU.dta, generate(merge5)
+
+keep if merge5 == 3
+save dataset.dta, replace
+
+rename sld012 sleep
+rename ocq260 occupation
+rename dr1tsugr tot_sugr
+rename dr1ttfat tot_fat
+rename alq130 alcohol
+rename riagendr gender
+rename ridageyr age
+rename diq010 diabete
+
+// recode diabete: 0: no diabete, 1: has diabete
+replace diabete = 0 if diabete == 2
+
+// recode occupation: 1: private business employee
+//                    2: government employee
+//                    3: self-employed
+replace occupation = 2 if (occupation == 2 | occupation == 3 | occupation == 4)
+replace occupation = 3 if occupation == 5
+
+// remove missing values and unqualified values
+generate missing = 0
+replace missing = 1 if (seqn == . | diabete == 3 | diabete == 7 | diabete == 9 | diabete == . | age == . | gender == . | alcohol == 777 | alcohol == 999 | alcohol == . | tot_fat == . | tot_sugr == . | occupation == 6 | occupation == 77 | occupation == 99 | occupation == . | sleep == .)
+drop if missing == 1
+
+// fit the logistic model
+logit diabete age i.gender alcohol tot_fat tot_sugr i.occupation sleep, or
+matrix model = r(table)
+
+mata
+model = st_matrix(&quot;model&quot;)
+model = round(model[(1, 2, 5, 6), (1, 3, 4, 5, 6, 8, 9, 10)], 0.001)
+model = model'
+st_matrix(&quot;final_model&quot;, model)
+end
+
+putexcel set 506project_res.csv, replace
+putexcel A2 = &quot;age&quot;
+putexcel A3 = &quot;2.gender&quot;
+putexcel A4 = &quot;alcohol&quot;
+putexcel A5 = &quot;tot_fat&quot;
+putexcel A6 = &quot;tot_sugr&quot;
+putexcel A7 = &quot;2.occupation&quot;
+putexcel A8 = &quot;3.occupation&quot;
+putexcel A9 = &quot;sleep&quot;
+putexcel B1 = &quot;est&quot;
+putexcel C1 = &quot;se&quot;
+putexcel D1 = &quot;lwr&quot;
+putexcel E1 = &quot;upr&quot;
+putexcel B2 = matrix(final_model)
+
+putexcel save</code></pre>
+<pre class="r"><code>res = read.csv(&quot;506project_res.csv&quot;, fileEncoding = &quot;UTF-16LE&quot;)
+knitr::kable(res, caption=&quot;Odds Ratios&quot;)</code></pre>
 </div>
 </div>
 
