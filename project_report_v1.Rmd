@@ -44,8 +44,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R
 ```{r, eval=FALSE}
-library(haven)
 # read in all the datasets
+library(haven)
 files = c("ALQ_I.XPT", "DEMO_I.XPT", "DIQ_I.XPT", 
           "DR1IFF_I.XPT", "OCQ_I.XPT", "SLQ_I.XPT", "DR1TOT_I.XPT")
 das = list()
@@ -62,7 +62,9 @@ dietary = das[[4]]
 occupation = das[[5]]
 sleep = das[[6]]
 total_nutrient = das[[7]]
+```
 
+```{r, eval=FALSE}
 # clean variables 
 library(tidyverse)
 alcohol = alcohol %>% 
@@ -103,7 +105,9 @@ df = left_join(sleep,
                                    by = "SEQN"), 
                          by = "SEQN"), 
                by = "SEQN")
+```
 
+```{r, eval=FALSE}
 # delete missing values
 missing = nrow(df) - nrow(df %>% drop_na())
 cat("missing = ", missing) # one third of the data is missing
@@ -120,8 +124,11 @@ df = df %>%
           OCQ260 = as.factor(OCQ260), 
           DIQ010 = as.factor(DIQ010), 
           RIAGENDR = as.factor(RIAGENDR))
-summary(df)
 
+summary(df)
+```
+
+```{r, eval=FALSE}
 # two-way contingency table
 xtabs(~DIQ010 + OCQ260, data = df)
 xtabs(~DIQ010 + RIAGENDR , data = df)
