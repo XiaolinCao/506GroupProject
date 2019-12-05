@@ -262,3 +262,15 @@ putexcel save
 res = read.csv("506project_res.csv", fileEncoding = "UTF-16LE")
 knitr::kable(res, caption="Odds Ratios")
 ```
+
+# Additional Analysis
+
+<p>
+Agenda: show the distribution plots for the predicting variables
+</p>
+
+# Results
+
+<p>
+Agenda: present the result table and interpretate the coefficients
+</p>
