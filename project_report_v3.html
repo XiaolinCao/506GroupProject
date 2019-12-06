@@ -428,7 +428,7 @@ p = P(Y = 1) = \tfrac{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}{e^{\beta_0 + \su
 <li>.html file: knit the .Rmd file and create a html file.</li>
 </ol>
 </div>
-<div id="core-analysis" class="section level1 tabset">
+<div id="core-analysis" class="section level1 tabset tabset-fade">
 <h1>Core Analysis</h1>
 <div id="r" class="section level2">
 <h2>R</h2>
@@ -536,6 +536,100 @@ hist(DS$tot_sugar, main = &quot;* Graph 6: SUGAR pattern in all respondents *&qu
 </div>
 <div id="python" class="section level2">
 <h2>Python</h2>
+<pre class="r"><code>import pandas as pd
+import os
+import numpy as np
+# read data and extract variables simultaneously
+xpt_files = [&quot;ALQ_I.XPT&quot;, &quot;DEMO_I.XPT&quot;, &quot;OCQ_I.XPT&quot;, &quot;DIQ_I.XPT&quot;, 
+             &quot;DR1IFF_I.XPT&quot;, &quot;SLQ_I.XPT&quot;, &quot;DR1TOT_I.XPT&quot;]
+base = &quot;&quot;
+vars = [[&quot;SEQN&quot;, &quot;ALQ130&quot;],
+        [&quot;SEQN&quot;, &quot;RIAGENDR&quot;, &quot;RIDAGEYR&quot;],
+        [&quot;SEQN&quot;, &quot;OCQ260&quot;],
+        [&quot;SEQN&quot;, &quot;DIQ010&quot;],
+        [&quot;SEQN&quot;, &quot;DR1ISUGR&quot;, &quot;DR1ITFAT&quot;],
+        [&quot;SEQN&quot;, &quot;SLD012&quot;],
+        [&quot;SEQN&quot;, &quot;DR1TSUGR&quot;, &quot;DR1TTFAT&quot;]
+    ]
+
+# STORE files in a list
+da = []
+for idf, fn in enumerate(xpt_files):
+    df = pd.read_sas(os.path.join(base, fn))
+    df = df.loc[:, vars[idf]]
+    da.append(df)
+    
+# label the datasets
+alcohol = da[0]
+demo = da[1]
+diabete = da[3]
+dietary = da[4]
+occupation = da[2]
+sleep = da[5]
+total_nutrient = da[6]</code></pre>
+<pre class="r"><code># data cleaning - missing, re-categorize,
+# diebete
+for i in range(diabete.shape[0]):
+    if diabete.iloc[i][1] == 2.0:
+        diabete.iloc[i][1] = int(0)
+    elif diabete.iloc[i][1] == 1.0:
+        diabete.iloc[i][1] = int(diabete.iloc[i][1])
+    else:
+        diabete.iloc[i][1] = np.nan
+        
+# alcohol
+for j in range(alcohol.shape[0]):
+    if alcohol.iloc[j][1] in [777.0, 999.0]:
+        alcohol.iloc[j][1] == np.nan
+    
+# occupation
+for k in range(occupation.shape[0]):
+    if occupation.iloc[k][1] in [77.0, 99.0, 6.0]:
+        occupation.iloc[k][1] = np.nan
+    elif occupation.iloc[k][1] in [2.0, 3.0, 4.0]:
+        occupation.iloc[k][1] = 2.0
+    elif occupation.iloc[k][1] == 5.0:
+        occupation.iloc[k][1] = 3.0
+
+# dietary
+dietary = dietary.groupby(&#39;SEQN&#39;).sum()
+dietary.columns = [&quot;Tot_sugar&quot;, &quot;Tot_fat&quot;]
+dietary = dietary.reset_index()</code></pre>
+<pre class="r"><code># merge tables
+table = pd.merge(left=alcohol,right=demo, left_on=&#39;SEQN&#39;, right_on=&#39;SEQN&#39;)
+table = pd.merge(left=table,right=diabete, left_on=&#39;SEQN&#39;, right_on=&#39;SEQN&#39;)
+table = pd.merge(left=table,right=dietary, left_on=&#39;SEQN&#39;, right_on=&#39;SEQN&#39;)
+table = pd.merge(left=table,right=occupation, left_on=&#39;SEQN&#39;, right_on=&#39;SEQN&#39;)
+table = pd.merge(left=table,right=sleep, left_on=&#39;SEQN&#39;, right_on=&#39;SEQN&#39;)
+table = table.dropna()
+# 2087 rows left after removing nan</code></pre>
+<pre class="r"><code>import statistics as stats
+# center age, sleep hours, and tot_fat
+table[&#39;RIDAGEYR&#39;] = table[&#39;RIDAGEYR&#39;] - stats.mean(table[&#39;RIDAGEYR&#39;])
+table[&#39;SLD012&#39;] = table[&#39;SLD012&#39;] - stats.mean(table[&#39;SLD012&#39;])
+table[&#39;Tot_fat&#39;] = table[&#39;Tot_fat&#39;] - stats.mean(table[&#39;Tot_fat&#39;])</code></pre>
+<pre class="r"><code># contingency table - gender
+pd.crosstab(table[&quot;DIQ010&quot;], table[&quot;RIAGENDR&quot;])</code></pre>
+<pre class="r"><code># contingency table - occupation
+pd.crosstab(table[&quot;DIQ010&quot;], table[&quot;OCQ260&quot;])</code></pre>
+<pre class="r"><code># Change numeric to dummy
+# handle multi-level categorical variable - OCQ260
+occ = pd.get_dummies(table[&#39;OCQ260&#39;], prefix=&#39;OCQ260&#39;)
+gender = pd.get_dummies(table[&#39;RIAGENDR&#39;], prefix=&#39;RIAGENDR&#39;)
+occ.columns = [&#39;business&#39;, &#39;government&#39;, &#39;self-employee&#39;]
+gender.columns = [&#39;male&#39;,&#39;female&#39;]
+cols_to_keep = [&#39;ALQ130&#39;, &quot;RIDAGEYR&quot;,&quot;SLD012&quot;, &quot;Tot_sugar&quot;, &quot;Tot_fat&quot;]
+
+df_temp = table[cols_to_keep].join(occ.loc[: , &#39;government&#39; : ])
+df_temp = df_temp.join(gender[&#39;female&#39;])
+X = df_temp.iloc[:,:]
+# add intercept manually
+X[&#39;intercept&#39;] = 1.0
+y = table[&#39;DIQ010&#39;]</code></pre>
+<pre class="r"><code>import statsmodels.api as sm
+logit_model=sm.Logit(y,X)
+result=logit_model.fit()
+print(result.summary())</code></pre>
 </div>
 <div id="stata" class="section level2">
 <h2>STATA</h2>
@@ -656,6 +750,9 @@ putexcel save</code></pre>
 <pre class="r"><code>res = read.csv(&quot;506project_res.csv&quot;, fileEncoding = &quot;UTF-16LE&quot;)
 knitr::kable(res, caption=&quot;Odds Ratios&quot;)</code></pre>
 </div>
+</div>
+<div id="section" class="section level1">
+<h1></h1>
 <div id="references" class="section level2">
 <h2>References</h2>
 <ol style="list-style-type: decimal">
