@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Introduction
+
 <p> 
   According to the survey from American Diabetes Association, more than 30 million      Americans have diabetes and around 84 million Americans have pre-diabetes. The health care costs of diagnosed diabetes are 327 billion per year according to the 2017 statistics. Compared with those without diabetes, people with diabetes are spending 2.3 times more on their medical expenditure. With National Health and Nutrition Examination Survey on hand, our group are interested in exploring the prevalence of diabetes in terms of demographic features, dietary habits and alcohol use. 
 </p>

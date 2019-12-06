@@ -411,7 +411,7 @@ We have set some common rules for performing the data cleaning part. The respons
 <h2>R</h2>
 <pre class="r"><code># data: ------------------------------------------------------------------------
 library(SASxport)
-path = &quot;C:/Users/chenyn/Downloads/STATS 506/project&quot;
+# path = &quot;H:/Personal/STATS506/project&quot;
 files = list.files(path, pattern = &quot;*.XPT&quot;, full.names = T)
 dataset = sapply(files, read.xport, simplify = FALSE)
 
@@ -452,9 +452,8 @@ DS = na.omit(DS)[diabete %in% c(0,1),
                                    gender = as.factor(gender))
                           ][, -c(&quot;SEQN&quot;), with = FALSE]
 
-summary(DS)
-
-# preliminary exploration: -----------------------------------------------------
+summary(DS)</code></pre>
+<pre class="r"><code># preliminary exploration: -----------------------------------------------------
 # two-way contingency table
 table(DS$diabete, DS$occupation)
 table(DS$diabete, DS$gender)
@@ -473,9 +472,8 @@ table(DS$diabete, DS$gender)
 # training
 
 fit = glm(diabete ~ ., data = DS, family = &quot;binomial&quot;)
-summary(fit)
-
-# plots: ------------------------------------------------------------------------
+summary(fit)</code></pre>
+<pre class="r"><code># plots: ------------------------------------------------------------------------
 # graphs: 
 # 1. plot the fraction of respondents who have diabete against their age
 # 2. plot the fraction of all respondents against their age
