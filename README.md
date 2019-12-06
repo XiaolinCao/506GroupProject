@@ -44,26 +44,20 @@ Here we use survey data in the 2015 - 2016 cycle.
 
 ## Method Introduction:
 
-In statistics, the logistic model is used to model the probability of a certain class, such as pass/fail, win/lose, alive/dead or healthy/sick. 
+In statistics, the logistic model is used to model the probability of a certain class, such as pass/fail, win/lose, alive/dead or healthy/sick. <br /> 
 
-Here, our response variable is binary (diabetes or not). In ordinary linear model, the response variable range from negative infinite to positive infinite. In order to  model a binary dependent variable, we need to use a logistic function as a link function:
-$$
-\\log(\tfrac{p}{1-p})
-$$
-Then we can use logistic regression to fit our model:
-$$
-\\log(\tfrac{p}{1-p}) =\eta = \beta_0 + \sum_{i=1}^{n}\beta_iX_{i}
-$$
-Use maximum likelihood approach to find parameters that maximize the likelihood of the data:
-$$
-\ell(\beta) = \sum_{i=1}^{n}[y_i(x_i^\intercal\beta)-n_i\log(1+exp(x_i^\intercal\beta))]
-$$
-Then we can get the probability of success (here means being told you have diabetes):
-$$
-p = P(Y = 1) = \tfrac{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}} + 1}
-$$
+Here, our response variable is binary (diabetes or not). In ordinary linear model, the response variable range from negative infinite to positive infinite. In order to  model a binary dependent variable, we need to use a logistic function as a link function: <br />
+<div align="center"><a href="https://www.codecogs.com/eqnedit.php?latex=\\log(\frac{p}{1-p})" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\\log(\frac{p}{1-p})" title="\\log(\frac{p}{1-p})" /></a></div>
 
 
+Then we can use logistic regression to fit our model: <br />
+<div align="center"><a href="https://www.codecogs.com/eqnedit.php?latex=\\log(\frac{p}{1-p})&space;=\eta&space;=&space;\beta_0&plus;\sum_{i=1}^{n}\beta_iX_{i}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\\log(\frac{p}{1-p})&space;=\eta&space;=&space;\beta_0&plus;\sum_{i=1}^{n}\beta_iX_{i}" title="\\log(\frac{p}{1-p}) =\eta = \beta_0+\sum_{i=1}^{n}\beta_iX_{i}" /></a></div>
+
+Use maximum likelihood approach to find parameters that maximize the likelihood of the data:  <br />
+<div align="center"><a href="https://www.codecogs.com/eqnedit.php?latex=\ell(\beta)&space;=&space;\sum_{i=1}^{n}[y_i({x_i}^\intercal\beta)-n_i\log(1&plus;exp({x_i}^\intercal\beta))]" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\ell(\beta)&space;=&space;\sum_{i=1}^{n}[y_i({x_i}^\intercal\beta)-n_i\log(1&plus;exp({x_i}^\intercal\beta))]" title="\ell(\beta) = \sum_{i=1}^{n}[y_i({x_i}^\intercal\beta)-n_i\log(1+exp({x_i}^\intercal\beta))]" /></a></div>
+
+Then we can get the probability of success (here means being told you have diabetes):  <br />
+<div align="center"><a href="https://www.codecogs.com/eqnedit.php?latex=p&space;=&space;P(Y&space;=&space;1)&space;=&space;\frac{e^{\beta_0&space;&plus;&space;\sum_{i=1}^{n}\beta_iX_{i}}}{&space;1&space;&plus;&space;e^{\beta_0&space;&plus;&space;\sum_{i=1}^{n}\beta_iX_{i}}}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?p&space;=&space;P(Y&space;=&space;1)&space;=&space;\frac{e^{\beta_0&space;&plus;&space;\sum_{i=1}^{n}\beta_iX_{i}}}{&space;1&space;&plus;&space;e^{\beta_0&space;&plus;&space;\sum_{i=1}^{n}\beta_iX_{i}}}" title="p = P(Y = 1) = \frac{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}{ 1 + e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}" /></a></div>
 
 ## File description & Collaboration:
 
@@ -76,6 +70,7 @@ Our group uses three kinds of tools to carry out the core analysis: R, python an
 3. .ipynb file: Using python to clean data and fit model. Basically wrote by Zheng Jing, reviewed by other 2 group members.
 
 4. .Rmd file: Describe data, summarize model and interpret model conclusion. All of us work on it.
+
 5. .html file: knit the .Rmd file and create a html file.
 
 
