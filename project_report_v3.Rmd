@@ -1,0 +1,325 @@
+---
+title: "506 Group Project: Diabetes"
+author: "Yinuo Chen"
+date: "2019/12/5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Introduction
+
+<p> 
+  According to the survey from American Diabetes Association, more than 30 million      Americans have diabetes and around 84 million Americans have pre-diabetes. The health care costs of diagnosed diabetes are 327 billion per year according to the 2017 statistics. Compared with those without diabetes, people with diabetes are spending 2.3 times more on their medical expenditure. With National Health and Nutrition Examination Survey on hand, our group are interested in exploring the prevalence of diabetes in terms of demographic features, dietary habits and alcohol use. 
+</p>
+
+<p> 
+  In the end of our analysis, we will show how gender, age, nutrient, occupation, alcohol use and sleep quality are associated with the probability of being diagnosed with diabetes. By comparing respective odds ratios, we will come to a conclusion that describes which population are more subject to diabetes. 
+</p>
+
+# Data
+* reponse variable: DIQ010 (<em>Doctor told you have diabetes</em>), Dataset: DIQ_I.XPT (<em>Diabetes 2015 - 2016</em>)
+* predicting variables:
+    + RIAGENDER (<em>Gender</em>), Dataset: DEMO_I.XPT (<em>Demographic Variables and Sample Weights 2015 - 2016</em>)
+    + RIDAGEYR (<em>Age in years at screening</em>), Dataset: DEMO_I.XPT (<em>Demographic Variables and Sample Weights 2015 - 2016</em>)
+    + ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>), Dataset: ALQ_I.XPT (<em>Alcohol Use 2015 - 2016</em>)
+    + DR1ISUGR (<em>Total sugars (gm)</em>), Dataset: DR1IFF_I.XPT  (<em>Dietary Interview Individual Foods, First Day 2015 - 2016</em>)
+    + DR1ITFAT (<em>Total fat (gm)</em>), Dataset: DR1IFF_I.XPT  (<em>Dietary Interview Individual Foods, First Day 2015 - 2016</em>)
+    + DR1TSUGR (<em>Total sugars (gm)</em>), Dataset: DR1TOT_I.XPT (<em>Dietary Interview Total Nutrients Intakes, First Day 2015 - 2016</em>)
+    + DR1TTFAT (<em>Total fat (gm)</em>), Dataset: DR1TOT_I.XPT (<em>Dietary Interview Total Nutrients Intakes, First Day 2015 - 2016</em>)
+    + OCQ260 (<em>Description of job/work situation</em>), Dataset: OCQ_I.XPT (<em>Occupation 2015 - 2016</em>)
+    + SLD012 (<em>Sleep hours</em>), Dataset: SLQ_I.XPT (<em>Sleep Disorders 2015 - 2016</em>)
+
+# Methods
+<p>
+  We preprocessed and cleaned all the variables beforehand. The rows with missing values are removed and some variables are recoded for consistency. After the data preprocessing step, we fit the dataset with logistic regression. We carried out the above procedures in R, python and STATA. 
+</p>
+
+<p>
+  We have set some common rules for performing the data cleaning part. The response variable DIQ010 should be coded as 1: <em>Yes</em> and 0: <em>No</em> and should be treated as a categorical variable. RIAGENDER (<em>Gender</em>) should be coded as 1: <em>Males</em> and 2: <em>Female</em> and should be treated as categorical variable. ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>) should range from 1 to 15. The use of two datasets DR1IFF_I.XPT and DR1TOT_I.XPT is to confirm the measurement accuracy of total sugar intake and total fat intake. OCQ260 (<em>Description of job/work situation</em>) should be recoded as 1: <em>private business employee</em>, 2: <em>government employee</em> and 3: <em>self-employed</em> and should be treated as a categorical variable.
+</p>
+
+</p>
+In statistics, the logistic model is used to model the probability of a certain class, such as pass/fail, win/lose, alive/dead or healthy/sick. 
+
+Here, our response variable is binary (diabetes or not). In ordinary linear model, the response variable range from negative infinite to positive infinite. In order to  model a binary dependent variable, we need to use a logistic function as a link function:
+$$
+\\log(\tfrac{p}{1-p})
+$$
+Then we can use logistic regression to fit our model:
+$$
+\\log(\tfrac{p}{1-p}) =\eta = \beta_0 + \sum_{i=1}^{n}\beta_iX_{i}
+$$
+Use maximum likelihood approach to find parameters that maximize the likelihood of the data:
+$$
+\ell(\beta) = \sum_{i=1}^{n}[y_i(x_i^\intercal\beta)-n_i\log(1+exp(x_i^\intercal\beta))]
+$$
+Then we can get the probability of success (here means being told you have diabetes):
+$$
+p = P(Y = 1) = \tfrac{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}} + 1}
+$$
+
+</p>
+
+
+# File description & Collaboration
+
+Our group uses three kinds of tools to carry out the core analysis: R, python and Stata.
+
+1. .R file: Using R to clean data and fit model. Basically Wrote by Yinuo Chen, reviewed by other 2 group members
+2. .do file: Using Stata to clean data and fit model.  Basically Wrote by Xiaolin Cao, reviewed by other 2 group members
+3. .ipynb file: Using python to clean data and fit model. Basically wrote by Zheng Jing, reviewed by other 2 group members.
+4. .Rmd file: Describe data, summarize model and interpret model conclusion. All of us work on it.
+5. .html file: knit the .Rmd file and create a html file.
+
+
+# Core Analysis {.tabset}
+
+## R
+```{r, eval = FALSE}
+# data: ------------------------------------------------------------------------
+library(SASxport)
+# path = "H:/Personal/STATS506/project"
+files = list.files(path, pattern = "*.XPT", full.names = T)
+dataset = sapply(files, read.xport, simplify = FALSE)
+
+
+# rename data
+names = c("alcohol", "demo", "diabete", "total_nutri", 
+          "occupation", "sleep")
+names(dataset) = names
+
+# clean up key variables used in this problem: ---------------------------------
+library(data.table)
+# select all key variables
+ds1 = as.data.table(dataset$alcohol)[,.(SEQN, alcohol = ALQ130)]
+ds2 = as.data.table(dataset$demo)[,.(SEQN, gender = RIAGENDR, age = RIDAGEYR)]
+ds3 = as.data.table(dataset$diabete)[,.(SEQN, 
+                                        diabete = ifelse(DIQ010 == 2, 0, DIQ010))]
+ds4 = as.data.table(dataset$total_nutri)[,.(SEQN, 
+                                            tot_sugar = DR1TSUGR, 
+                                            tot_fat = DR1TTFAT)]
+
+
+ds5 = as.data.table(dataset$occupation)[,.(SEQN, occupation = OCQ260)]
+ds6 = as.data.table(dataset$sleep)[,.(SEQN, sleep = SLD012)]
+
+# merge all datasets
+DS = Reduce(merge,list(ds1,ds2,ds3,ds4,ds5,ds6))
+
+
+# remove missing values and unqualified values: --------------------------------
+DS = na.omit(DS)[diabete %in% c(0,1),
+                  ][!(alcohol %in% c(777,999)),
+                    ][!(occupation %in% c(6, 77, 99)),
+                      ][occupation %in% c(2,3,4), occupation := 2
+                        ][occupation == 5, occupation := 3
+                          ][
+                            , `:=`(occupation = as.factor(occupation),
+                                   diabete = as.factor(diabete),
+                                   gender = as.factor(gender))
+                          ][, -c("SEQN"), with = FALSE]
+
+summary(DS)
+```
+
+
+```{r, eval = FALSE}
+# preliminary exploration: -----------------------------------------------------
+# two-way contingency table
+table(DS$diabete, DS$occupation)
+table(DS$diabete, DS$gender)
+
+# table using proportions:
+# prop.table(table(DS$diabete, DS$occupation))
+# prop.table(table(DS$diabete, DS$gender))
+
+# It seems like that occupation 1 has the lowest diabete percentage and 
+# occupation 3 has the highest diabete percentage.
+#
+# From the diabete percetage, men are more likely to get diabetes than women.
+
+
+# logistic model: --------------------------------------------------------------
+# training
+
+fit = glm(diabete ~ ., data = DS, family = "binomial")
+summary(fit)
+```
+
+
+```{r, eval = FALSE}
+# plots: ------------------------------------------------------------------------
+# graphs: 
+# 1. plot the fraction of respondents who have diabete against their age
+# 2. plot the fraction of all respondents against their age
+# 3. plot the fraction of respondents who have diabete against their age
+# 4. plot the fraction of all respondents against their age
+# 5. plot the fraction of respondents who have diabete against their age
+# 6. plot the fraction of all respondents against their age
+
+diabete_1 = DS[diabete == '1']
+hist(diabete_1$age, main = "* Graph 1: AGE pattern in diabetes *",
+     xlab="age", las = 1 )
+hist(DS$age, main = "* Graph 2: AGE pattern in all respondents *",
+     xlab="age", las = 1 )
+
+
+
+hist(diabete_1$sleep, main = "* Graph 3: SLEEP pattern in diabetes *",
+     xlab="sleep", las = 1  )
+hist(DS$sleep, main = "* Graph 4: SLEEP pattern in all respondents *",
+     xlab="sleep", las = 1 )
+# The above two plots prove that sleeping hours has little to do with diabetes, 
+# because the distribution of both look very similar.
+
+
+# We can see from the result that the coefficient of sugar is negative, 
+# which contradicts our intuition that more sugar intake 
+# increases the probability of developing diabete.
+# 
+# Maybe genetic effect is much more important than the amount of sugar intake. 
+# Since people who have family diabete history 
+# are likely to be more carefull about sugar intake.
+
+hist(diabete_1$tot_sugar, main = "* Graph 5: SUGAR pattern in diabetes *",
+     xlab="sugar", las = 1  )
+hist(DS$tot_sugar, main = "* Graph 6: SUGAR pattern in all respondents *",
+     xlab="sugar", las = 1 )
+
+```
+
+
+## Python
+
+## STATA
+```{r, eval = FALSE}
+* Import and merge ------------------------------------------------------------
+pwd
+cd C:\Users\xiaolc\Downloads
+pwd
+
+// response variables
+// diabetes
+fdause DIQ_I.XPT, clear
+quietly compress
+gsort +seqn
+keep seqn diq010
+save DIABETES.dta, replace
+
+// predicting variables
+// gender, age
+fdause DEMO_I.XPT, clear
+quietly compress
+gsort +seqn
+keep seqn riagendr ridageyr
+merge 1:1 seqn using DIABETES.dta
+
+keep if _merge == 3
+save DIA_DEMO.dta, replace
+
+// alcohol
+fdause ALQ_I.XPT, clear
+quietly compress
+gsort +seqn
+keep seqn alq130
+merge 1:1 seqn using DIA_DEMO.dta, generate(merge2)
+
+keep if merge2 == 3
+save DIA_DEMO_ALC.dta, replace
+
+// total sugars, total fat
+fdause DR1TOT_I.XPT
+quietly compress
+gsort +seqn
+keep seqn dr1tsugr dr1ttfat
+merge 1:1 seqn using DIA_DEMO_ALC.dta, generate(merge3)
+
+keep if merge3 == 3
+save DIA_DEMO_ALC_NUTR.dta, replace
+
+// occupation
+fdause OCQ_I.XPT, clear
+quietly compress
+gsort +seqn
+keep seqn ocq260
+merge 1:1 seqn using DIA_DEMO_ALC_NUTR.dta, generate(merge4)
+
+keep if merge4 == 3
+save DIA_DEMO_ALC_NUTR_OCU.dta, replace
+
+// sleep disorder
+fdause SLQ_I.XPT
+quietly compress
+gsort +seqn
+keep seqn sld012
+merge 1:1 seqn using DIA_DEMO_ALC_NUTR_OCU.dta, generate(merge5)
+
+keep if merge5 == 3
+save dataset.dta, replace
+
+rename sld012 sleep
+rename ocq260 occupation
+rename dr1tsugr tot_sugr
+rename dr1ttfat tot_fat
+rename alq130 alcohol
+rename riagendr gender
+rename ridageyr age
+rename diq010 diabete
+
+// recode diabete: 0: no diabete, 1: has diabete
+replace diabete = 0 if diabete == 2
+
+// recode occupation: 1: private business employee
+//					  2: government employee
+//					  3: self-employed
+replace occupation = 2 if (occupation == 2 | occupation == 3 | occupation == 4)
+replace occupation = 3 if occupation == 5
+
+// remove missing values and unqualified values
+generate missing = 0
+replace missing = 1 if (seqn == . | diabete == 3 | diabete == 7 | diabete == 9 | diabete == . | age == . | gender == . | alcohol == 777 | alcohol == 999 | alcohol == . | tot_fat == . | tot_sugr == . | occupation == 6 | occupation == 77 | occupation == 99 | occupation == . | sleep == .)
+drop if missing == 1
+
+// fit the logistic model
+logit diabete age i.gender alcohol tot_fat tot_sugr i.occupation sleep, or
+matrix model = r(table)
+
+mata
+model = st_matrix("model")
+model = round(model[(1, 2, 5, 6), (1, 3, 4, 5, 6, 8, 9, 10)], 0.001)
+model = model'
+st_matrix("final_model", model)
+end
+
+putexcel set 506project_res.csv, replace
+putexcel A2 = "age"
+putexcel A3 = "2.gender"
+putexcel A4 = "alcohol"
+putexcel A5 = "tot_fat"
+putexcel A6 = "tot_sugr"
+putexcel A7 = "2.occupation"
+putexcel A8 = "3.occupation"
+putexcel A9 = "sleep"
+putexcel B1 = "est"
+putexcel C1 = "se"
+putexcel D1 = "lwr"
+putexcel E1 = "upr"
+putexcel B2 = matrix(final_model)
+
+putexcel save
+```
+
+```{r, eval=FALSE}
+res = read.csv("506project_res.csv", fileEncoding = "UTF-16LE")
+knitr::kable(res, caption="Odds Ratios")
+```
+
+## References
+
+1. Faraway, Julian J. *Extending the linear model with R: generalized linear, mixed effects and nonparametric regression models*. Chapman and Hall/CRC, 2016.
+
+
