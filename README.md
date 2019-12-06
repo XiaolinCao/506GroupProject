@@ -47,21 +47,21 @@ Here we use survey data in the 2015 - 2016 cycle.
 In statistics, the logistic model is used to model the probability of a certain class, such as pass/fail, win/lose, alive/dead or healthy/sick. 
 
 Here, our response variable is binary (diabetes or not). In ordinary linear model, the response variable range from negative infinite to positive infinite. In order to  model a binary dependent variable, we need to use a logistic function as a link function:
-$$
+$
 \\log(\tfrac{p}{1-p})
-$$
+$
 Then we can use logistic regression to fit our model:
-$$
+$
 \\log(\tfrac{p}{1-p}) =\eta = \beta_0 + \sum_{i=1}^{n}\beta_iX_{i}
-$$
+$
 Use maximum likelihood approach to find parameters that maximize the likelihood of the data:
-$$
+$
 \ell(\beta) = \sum_{i=1}^{n}[y_i(x_i^\intercal\beta)-n_i\log(1+exp(x_i^\intercal\beta))]
-$$
+$
 Then we can get the probability of success (here means being told you have diabetes):
-$$
+$
 p = P(Y = 1) = \tfrac{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}} + 1}
-$$
+$
 
 
 
