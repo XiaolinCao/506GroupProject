@@ -4,7 +4,7 @@
 
 Group 11 <br />
 
-Members:  Xiaolin Cao - *Stata*, Yinuo Chen - *R*, Zheng Jing - *Python*<br />
+Members:  **Xiaolin Cao** - *Stata*, **Yinuo Chen** - *R*, **Zheng Jing** - *Python*<br />
 
 
 ## Question: 
