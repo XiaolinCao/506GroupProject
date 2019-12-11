@@ -1,13 +1,14 @@
 ---
 title: "506 Group Project: Diabetes"
-date: November 30, 2019
+author: "Yinuo Chen"
+date: "2019/12/5"
 output: html_document
-  
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 
 # Introduction
 
@@ -41,108 +42,159 @@ knitr::opts_chunk$set(echo = TRUE)
   We have set some common rules for performing the data cleaning part. The response variable DIQ010 should be coded as 1: <em>Yes</em> and 0: <em>No</em> and should be treated as a categorical variable. RIAGENDER (<em>Gender</em>) should be coded as 1: <em>Males</em> and 2: <em>Female</em> and should be treated as categorical variable. ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>) should range from 1 to 15. The use of two datasets DR1IFF_I.XPT and DR1TOT_I.XPT is to confirm the measurement accuracy of total sugar intake and total fat intake. OCQ260 (<em>Description of job/work situation</em>) should be recoded as 1: <em>private business employee</em>, 2: <em>government employee</em> and 3: <em>self-employed</em> and should be treated as a categorical variable.
 </p>
 
-# Core Analysis {.tabset}
+</p>
+In statistics, the logistic model is used to model the probability of a certain class, such as pass/fail, win/lose, alive/dead or healthy/sick. 
+
+Here, our response variable is binary (diabetes or not). In ordinary linear model, the response variable range from negative infinite to positive infinite. In order to  model a binary dependent variable, we need to use a logistic function as a link function:
+$$
+\\log(\tfrac{p}{1-p})
+$$
+Then we can use logistic regression to fit our model:
+$$
+\\log(\tfrac{p}{1-p}) =\eta = \beta_0 + \sum_{i=1}^{n}\beta_iX_{i}
+$$
+Use maximum likelihood approach to find parameters that maximize the likelihood of the data:
+$$
+\ell(\beta) = \sum_{i=1}^{n}[y_i(x_i^\intercal\beta)-n_i\log(1+exp(x_i^\intercal\beta))]
+$$
+Then we can get the probability of success (here means being told you have diabetes):
+$$
+p = P(Y = 1) = \tfrac{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}} + 1}
+$$
+
+</p>
+
+
+# File description & Collaboration
+
+Our group uses three kinds of tools to carry out the core analysis: R, python and Stata.
+
+1. .R file: Using R to clean data and fit model. Basically Wrote by Yinuo Chen, reviewed by other 2 group members
+2. .do file: Using Stata to clean data and fit model.  Basically Wrote by Xiaolin Cao, reviewed by other 2 group members
+3. .ipynb file: Using python to clean data and fit model. Basically wrote by Zheng Jing, reviewed by other 2 group members.
+4. .Rmd file: Describe data, summarize model and interpret model conclusion. All of us work on it.
+5. .html file: knit the .Rmd file and create a html file.
+
+
+# Core Analysis {.tabset .tabset-fade}
 
 ## R
-```{r, eval=FALSE}
-# read in all the datasets
-library(haven)
-files = c("ALQ_I.XPT", "DEMO_I.XPT", "DIQ_I.XPT", 
-          "DR1IFF_I.XPT", "OCQ_I.XPT", "SLQ_I.XPT", "DR1TOT_I.XPT")
-das = list()
-for (f in files) {
-    dx = read_xpt(f)
-    das[[length(das)+1]] = dx
-}
+```{r, eval = FALSE}
+# data: ------------------------------------------------------------------------
+library(SASxport)
+# path = "H:/Personal/STATS506/project"
+files = list.files(path, pattern = "*.XPT", full.names = T)
+dataset = sapply(files, read.xport, simplify = FALSE)
 
-# store data
-alcohol = das[[1]]
-demo = das[[2]]
-diabete = das[[3]]
-dietary = das[[4]]
-occupation = das[[5]]
-sleep = das[[6]]
-total_nutrient = das[[7]]
+
+# rename data
+names = c("alcohol", "demo", "diabete", "total_nutri", 
+          "occupation", "sleep")
+names(dataset) = names
+
+# clean up key variables used in this problem: ---------------------------------
+library(data.table)
+# select all key variables
+ds1 = as.data.table(dataset$alcohol)[,.(SEQN, alcohol = ALQ130)]
+ds2 = as.data.table(dataset$demo)[,.(SEQN, gender = RIAGENDR, age = RIDAGEYR)]
+ds3 = as.data.table(dataset$diabete)[,.(SEQN, 
+                                        diabete = ifelse(DIQ010 == 2, 0, DIQ010))]
+ds4 = as.data.table(dataset$total_nutri)[,.(SEQN, 
+                                            tot_sugar = DR1TSUGR, 
+                                            tot_fat = DR1TTFAT)]
+
+
+ds5 = as.data.table(dataset$occupation)[,.(SEQN, occupation = OCQ260)]
+ds6 = as.data.table(dataset$sleep)[,.(SEQN, sleep = SLD012)]
+
+# merge all datasets
+DS = Reduce(merge,list(ds1,ds2,ds3,ds4,ds5,ds6))
+
+
+# remove missing values and unqualified values: --------------------------------
+DS = na.omit(DS)[diabete %in% c(0,1),
+                  ][!(alcohol %in% c(777,999)),
+                    ][!(occupation %in% c(6, 77, 99)),
+                      ][occupation %in% c(2,3,4), occupation := 2
+                        ][occupation == 5, occupation := 3
+                          ][
+                            , `:=`(occupation = as.factor(occupation),
+                                   diabete = as.factor(diabete),
+                                   gender = as.factor(gender))
+                          ][, -c("SEQN"), with = FALSE]
+
+summary(DS)
 ```
 
-```{r, eval=FALSE}
-# clean variables 
-library(tidyverse)
-alcohol = alcohol %>% 
-  select(SEQN, ALQ130)
-demo = demo %>%
-  select(SEQN, RIAGENDR, RIDAGEYR)
-occupation = occupation %>%
-  select(SEQN, OCQ260)
-diabete = diabete %>%
-  transmute(SEQN, 
-            DIQ010 = ifelse(DIQ010 == 2, 0, DIQ010))
 
-# check if sums of one-day sugar and fat are equal to those of total nutrients dataset
-dietary = dietary %>%
-  select(SEQN, DR1ISUGR, DR1ITFAT) %>%
-  group_by(SEQN) %>%
-  summarize(Tot_sugar = sum(DR1ISUGR),
-            Tot_fat = sum(DR1ITFAT))
-
-total_nutrient = total_nutrient %>%
-  select(SEQN,DR1TSUGR, DR1TTFAT)
-
-total_nutrient
-dietary
-
-
-sleep = sleep %>%
-  select(SEQN, SLD012)
-
-# join all the datasets
-df = left_join(sleep, 
-               left_join(occupation, 
-                         left_join(dietary, 
-                                   left_join(diabete, 
-                                             left_join(alcohol, demo, 
-                                                       by = "SEQN"), 
-                                             by = "SEQN"), 
-                                   by = "SEQN"), 
-                         by = "SEQN"), 
-               by = "SEQN")
-```
-
-```{r, eval=FALSE}
-# delete missing values
-missing = nrow(df) - nrow(df %>% drop_na())
-cat("missing = ", missing) # one third of the data is missing
-df = df %>%
-  select(-SEQN) %>%
-  drop_na() %>%
-  filter(DIQ010 %in% c(0,1)) %>%
-  filter( !(ALQ130 %in% c(777, 999)) ) %>%
-  # only keep three occupation types
-  # change 'gender', 'occupation', and 'diabete' to factor
-  filter( !(OCQ260 %in% c(77,99,6)) ) %>%
-  mutate( OCQ260 = ifelse(OCQ260 %in% c(2,3,4), 2, OCQ260),
-          OCQ260 = ifelse(OCQ260 == 5, 3, OCQ260),
-          OCQ260 = as.factor(OCQ260), 
-          DIQ010 = as.factor(DIQ010), 
-          RIAGENDR = as.factor(RIAGENDR))
-
-summary(df)
-```
-
-```{r, eval=FALSE}
+```{r, eval = FALSE}
+# preliminary exploration: -----------------------------------------------------
 # two-way contingency table
-xtabs(~DIQ010 + OCQ260, data = df)
-xtabs(~DIQ010 + RIAGENDR , data = df)
-# seems like occupation 1 has lower diabete percentage than 2 and 3
+table(DS$diabete, DS$occupation)
+table(DS$diabete, DS$gender)
 
-# fit the model with logistic regression
-fit = glm(DIQ010 ~ ., data = df, family = "binomial")
+# table using proportions:
+# prop.table(table(DS$diabete, DS$occupation))
+# prop.table(table(DS$diabete, DS$gender))
+
+# It seems like that occupation 1 has the lowest diabete percentage and 
+# occupation 3 has the highest diabete percentage.
+#
+# From the diabete percetage, men are more likely to get diabetes than women.
+
+
+# logistic model: --------------------------------------------------------------
+# training
+
+fit = glm(diabete ~ ., data = DS, family = "binomial")
 summary(fit)
 ```
+
+
+```{r, eval = FALSE}
+# plots: ------------------------------------------------------------------------
+# graphs: 
+# 1. plot the fraction of respondents who have diabete against their age
+# 2. plot the fraction of all respondents against their age
+# 3. plot the fraction of respondents who have diabete against their age
+# 4. plot the fraction of all respondents against their age
+# 5. plot the fraction of respondents who have diabete against their age
+# 6. plot the fraction of all respondents against their age
+
+diabete_1 = DS[diabete == '1']
+hist(diabete_1$age, main = "* Graph 1: AGE pattern in diabetes *",
+     xlab="age", las = 1 )
+hist(DS$age, main = "* Graph 2: AGE pattern in all respondents *",
+     xlab="age", las = 1 )
+
+
+
+hist(diabete_1$sleep, main = "* Graph 3: SLEEP pattern in diabetes *",
+     xlab="sleep", las = 1  )
+hist(DS$sleep, main = "* Graph 4: SLEEP pattern in all respondents *",
+     xlab="sleep", las = 1 )
+# The above two plots prove that sleeping hours has little to do with diabetes, 
+# because the distribution of both look very similar.
+
+
+# We can see from the result that the coefficient of sugar is negative, 
+# which contradicts our intuition that more sugar intake 
+# increases the probability of developing diabete.
+# 
+# Maybe genetic effect is much more important than the amount of sugar intake. 
+# Since people who have family diabete history 
+# are likely to be more carefull about sugar intake.
+
+hist(diabete_1$tot_sugar, main = "* Graph 5: SUGAR pattern in diabetes *",
+     xlab="sugar", las = 1  )
+hist(DS$tot_sugar, main = "* Graph 6: SUGAR pattern in all respondents *",
+     xlab="sugar", las = 1 )
+
+```
+
+
 ## Python
-
-
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 import pandas as pd
 import os
 import numpy as np
@@ -176,7 +228,7 @@ sleep = da[5]
 total_nutrient = da[6]
 ```
 
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 # data cleaning - missing, re-categorize,
 # diebete
 for i in range(diabete.shape[0]):
@@ -207,8 +259,7 @@ dietary.columns = ["Tot_sugar", "Tot_fat"]
 dietary = dietary.reset_index()
 ```
 
-
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 # merge tables
 table = pd.merge(left=alcohol,right=demo, left_on='SEQN', right_on='SEQN')
 table = pd.merge(left=table,right=diabete, left_on='SEQN', right_on='SEQN')
@@ -219,8 +270,7 @@ table = table.dropna()
 # 2087 rows left after removing nan
 ```
 
-
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 import statistics as stats
 # center age, sleep hours, and tot_fat
 table['RIDAGEYR'] = table['RIDAGEYR'] - stats.mean(table['RIDAGEYR'])
@@ -228,20 +278,18 @@ table['SLD012'] = table['SLD012'] - stats.mean(table['SLD012'])
 table['Tot_fat'] = table['Tot_fat'] - stats.mean(table['Tot_fat'])
 ```
 
-
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 # contingency table - gender
 pd.crosstab(table["DIQ010"], table["RIAGENDR"])
 ```
 
 
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 # contingency table - occupation
 pd.crosstab(table["DIQ010"], table["OCQ260"])
 ```
 
-
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 # Change numeric to dummy
 # handle multi-level categorical variable - OCQ260
 occ = pd.get_dummies(table['OCQ260'], prefix='OCQ260')
@@ -258,13 +306,13 @@ X['intercept'] = 1.0
 y = table['DIQ010']
 ```
 
-
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 import statsmodels.api as sm
 logit_model=sm.Logit(y,X)
 result=logit_model.fit()
 print(result.summary())
 ```
+
 
 
 
@@ -391,14 +439,11 @@ res = read.csv("506project_res.csv", fileEncoding = "UTF-16LE")
 knitr::kable(res, caption="Odds Ratios")
 ```
 
-# Additional Analysis
 
-<p>
-Agenda: show the distribution plots for the predicting variables
-</p>
+#
 
-# Results
+## References
 
-<p>
-Agenda: present the result table and interpretate the coefficients
-</p>
+1. Faraway, Julian J. *Extending the linear model with R: generalized linear, mixed effects and nonparametric regression models*. Chapman and Hall/CRC, 2016.
+
+

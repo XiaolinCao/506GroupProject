@@ -10,8 +10,8 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
+<meta name="author" content="Yinuo Chen" />
 
-<meta name="date" content="2019-11-30" />
 
 <title>506 Group Project: Diabetes</title>
 
@@ -363,7 +363,8 @@ summary {
 
 
 <h1 class="title toc-ignore">506 Group Project: Diabetes</h1>
-<h4 class="date">November 30, 2019</h4>
+<h4 class="author">Yinuo Chen</h4>
+<h4 class="date">2019/12/3</h4>
 
 </div>
 
@@ -408,187 +409,110 @@ We have set some common rules for performing the data cleaning part. The respons
 <h1>Core Analysis</h1>
 <div id="r" class="section level2">
 <h2>R</h2>
-<pre class="r"><code># read in all the datasets
-library(haven)
-files = c(&quot;ALQ_I.XPT&quot;, &quot;DEMO_I.XPT&quot;, &quot;DIQ_I.XPT&quot;, 
-          &quot;DR1IFF_I.XPT&quot;, &quot;OCQ_I.XPT&quot;, &quot;SLQ_I.XPT&quot;, &quot;DR1TOT_I.XPT&quot;)
-das = list()
-for (f in files) {
-    dx = read_xpt(f)
-    das[[length(das)+1]] = dx
-}
-
-# store data
-alcohol = das[[1]]
-demo = das[[2]]
-diabete = das[[3]]
-dietary = das[[4]]
-occupation = das[[5]]
-sleep = das[[6]]
-total_nutrient = das[[7]]</code></pre>
-<pre class="r"><code># clean variables 
-library(tidyverse)
-alcohol = alcohol %&gt;% 
-  select(SEQN, ALQ130)
-demo = demo %&gt;%
-  select(SEQN, RIAGENDR, RIDAGEYR)
-occupation = occupation %&gt;%
-  select(SEQN, OCQ260)
-diabete = diabete %&gt;%
-  transmute(SEQN, 
-            DIQ010 = ifelse(DIQ010 == 2, 0, DIQ010))
-
-# check if sums of one-day sugar and fat are equal to those of total nutrients dataset
-dietary = dietary %&gt;%
-  select(SEQN, DR1ISUGR, DR1ITFAT) %&gt;%
-  group_by(SEQN) %&gt;%
-  summarize(Tot_sugar = sum(DR1ISUGR),
-            Tot_fat = sum(DR1ITFAT))
-
-total_nutrient = total_nutrient %&gt;%
-  select(SEQN,DR1TSUGR, DR1TTFAT)
-
-total_nutrient
-dietary
+<pre class="r"><code># data: ------------------------------------------------------------------------
+library(SASxport)
+# path = &quot;H:/Personal/STATS506/project&quot;
+files = list.files(path, pattern = &quot;*.XPT&quot;, full.names = T)
+dataset = sapply(files, read.xport, simplify = FALSE)
 
 
-sleep = sleep %&gt;%
-  select(SEQN, SLD012)
+# rename data
+names = c(&quot;alcohol&quot;, &quot;demo&quot;, &quot;diabete&quot;, &quot;total_nutri&quot;, 
+          &quot;occupation&quot;, &quot;sleep&quot;)
+names(dataset) = names
 
-# join all the datasets
-df = left_join(sleep, 
-               left_join(occupation, 
-                         left_join(dietary, 
-                                   left_join(diabete, 
-                                             left_join(alcohol, demo, 
-                                                       by = &quot;SEQN&quot;), 
-                                             by = &quot;SEQN&quot;), 
-                                   by = &quot;SEQN&quot;), 
-                         by = &quot;SEQN&quot;), 
-               by = &quot;SEQN&quot;)</code></pre>
-<pre class="r"><code># delete missing values
-missing = nrow(df) - nrow(df %&gt;% drop_na())
-cat(&quot;missing = &quot;, missing) # one third of the data is missing
-df = df %&gt;%
-  select(-SEQN) %&gt;%
-  drop_na() %&gt;%
-  filter(DIQ010 %in% c(0,1)) %&gt;%
-  filter( !(ALQ130 %in% c(777, 999)) ) %&gt;%
-  # only keep three occupation types
-  # change &#39;gender&#39;, &#39;occupation&#39;, and &#39;diabete&#39; to factor
-  filter( !(OCQ260 %in% c(77,99,6)) ) %&gt;%
-  mutate( OCQ260 = ifelse(OCQ260 %in% c(2,3,4), 2, OCQ260),
-          OCQ260 = ifelse(OCQ260 == 5, 3, OCQ260),
-          OCQ260 = as.factor(OCQ260), 
-          DIQ010 = as.factor(DIQ010), 
-          RIAGENDR = as.factor(RIAGENDR))
+# clean up key variables used in this problem: ---------------------------------
+library(data.table)
+# select all key variables
+ds1 = as.data.table(dataset$alcohol)[,.(SEQN, alcohol = ALQ130)]
+ds2 = as.data.table(dataset$demo)[,.(SEQN, gender = RIAGENDR, age = RIDAGEYR)]
+ds3 = as.data.table(dataset$diabete)[,.(SEQN, 
+                                        diabete = ifelse(DIQ010 == 2, 0, DIQ010))]
+ds4 = as.data.table(dataset$total_nutri)[,.(SEQN, 
+                                            tot_sugar = DR1TSUGR, 
+                                            tot_fat = DR1TTFAT)]
 
-summary(df)</code></pre>
-<pre class="r"><code># two-way contingency table
-xtabs(~DIQ010 + OCQ260, data = df)
-xtabs(~DIQ010 + RIAGENDR , data = df)
-# seems like occupation 1 has lower diabete percentage than 2 and 3
 
-# fit the model with logistic regression
-fit = glm(DIQ010 ~ ., data = df, family = &quot;binomial&quot;)
+ds5 = as.data.table(dataset$occupation)[,.(SEQN, occupation = OCQ260)]
+ds6 = as.data.table(dataset$sleep)[,.(SEQN, sleep = SLD012)]
+
+# merge all datasets
+DS = Reduce(merge,list(ds1,ds2,ds3,ds4,ds5,ds6))
+
+
+# remove missing values and unqualified values: --------------------------------
+DS = na.omit(DS)[diabete %in% c(0,1),
+                  ][!(alcohol %in% c(777,999)),
+                    ][!(occupation %in% c(6, 77, 99)),
+                      ][occupation %in% c(2,3,4), occupation := 2
+                        ][occupation == 5, occupation := 3
+                          ][
+                            , `:=`(occupation = as.factor(occupation),
+                                   diabete = as.factor(diabete),
+                                   gender = as.factor(gender))
+                          ][, -c(&quot;SEQN&quot;), with = FALSE]
+
+summary(DS)</code></pre>
+<pre class="r"><code># preliminary exploration: -----------------------------------------------------
+# two-way contingency table
+table(DS$diabete, DS$occupation)
+table(DS$diabete, DS$gender)
+
+# table using proportions:
+# prop.table(table(DS$diabete, DS$occupation))
+# prop.table(table(DS$diabete, DS$gender))
+
+# It seems like that occupation 1 has the lowest diabete percentage and 
+# occupation 3 has the highest diabete percentage.
+#
+# From the diabete percetage, men are more likely to get diabetes than women.
+
+
+# logistic model: --------------------------------------------------------------
+# training
+
+fit = glm(diabete ~ ., data = DS, family = &quot;binomial&quot;)
 summary(fit)</code></pre>
+<pre class="r"><code># plots: ------------------------------------------------------------------------
+# graphs: 
+# 1. plot the fraction of respondents who have diabete against their age
+# 2. plot the fraction of all respondents against their age
+# 3. plot the fraction of respondents who have diabete against their age
+# 4. plot the fraction of all respondents against their age
+# 5. plot the fraction of respondents who have diabete against their age
+# 6. plot the fraction of all respondents against their age
+
+diabete_1 = DS[diabete == &#39;1&#39;]
+hist(diabete_1$age, main = &quot;* Graph 1: AGE pattern in diabetes *&quot;,
+     xlab=&quot;age&quot;, las = 1 )
+hist(DS$age, main = &quot;* Graph 2: AGE pattern in all respondents *&quot;,
+     xlab=&quot;age&quot;, las = 1 )
+
+
+
+hist(diabete_1$sleep, main = &quot;* Graph 3: SLEEP pattern in diabetes *&quot;,
+     xlab=&quot;sleep&quot;, las = 1  )
+hist(DS$sleep, main = &quot;* Graph 4: SLEEP pattern in all respondents *&quot;,
+     xlab=&quot;sleep&quot;, las = 1 )
+# The above two plots prove that sleeping hours has little to do with diabetes, 
+# because the distribution of both look very similar.
+
+
+# We can see from the result that the coefficient of sugar is negative, 
+# which contradicts our intuition that more sugar intake 
+# increases the probability of developing diabete.
+# 
+# Maybe genetic effect is much more important than the amount of sugar intake. 
+# Since people who have family diabete history 
+# are likely to be more carefull about sugar intake.
+
+hist(diabete_1$tot_sugar, main = &quot;* Graph 5: SUGAR pattern in diabetes *&quot;,
+     xlab=&quot;sugar&quot;, las = 1  )
+hist(DS$tot_sugar, main = &quot;* Graph 6: SUGAR pattern in all respondents *&quot;,
+     xlab=&quot;sugar&quot;, las = 1 )</code></pre>
 </div>
 <div id="python" class="section level2">
 <h2>Python</h2>
-<pre class="r"><code>import pandas as pd
-import os
-import numpy as np
-# read data and extract variables simultaneously
-xpt_files = [&quot;ALQ_I.XPT&quot;, &quot;DEMO_I.XPT&quot;, &quot;OCQ_I.XPT&quot;, &quot;DIQ_I.XPT&quot;, 
-             &quot;DR1IFF_I.XPT&quot;, &quot;SLQ_I.XPT&quot;, &quot;DR1TOT_I.XPT&quot;]
-base = &quot;&quot;
-vars = [[&quot;SEQN&quot;, &quot;ALQ130&quot;],
-        [&quot;SEQN&quot;, &quot;RIAGENDR&quot;, &quot;RIDAGEYR&quot;],
-        [&quot;SEQN&quot;, &quot;OCQ260&quot;],
-        [&quot;SEQN&quot;, &quot;DIQ010&quot;],
-        [&quot;SEQN&quot;, &quot;DR1ISUGR&quot;, &quot;DR1ITFAT&quot;],
-        [&quot;SEQN&quot;, &quot;SLD012&quot;],
-        [&quot;SEQN&quot;, &quot;DR1TSUGR&quot;, &quot;DR1TTFAT&quot;]
-    ]
-
-# STORE files in a list
-da = []
-for idf, fn in enumerate(xpt_files):
-    df = pd.read_sas(os.path.join(base, fn))
-    df = df.loc[:, vars[idf]]
-    da.append(df)
-    
-# label the datasets
-alcohol = da[0]
-demo = da[1]
-diabete = da[3]
-dietary = da[4]
-occupation = da[2]
-sleep = da[5]
-total_nutrient = da[6]</code></pre>
-<pre class="r"><code># data cleaning - missing, re-categorize,
-# diebete
-for i in range(diabete.shape[0]):
-    if diabete.iloc[i][1] == 2.0:
-        diabete.iloc[i][1] = int(0)
-    elif diabete.iloc[i][1] == 1.0:
-        diabete.iloc[i][1] = int(diabete.iloc[i][1])
-    else:
-        diabete.iloc[i][1] = np.nan
-        
-# alcohol
-for j in range(alcohol.shape[0]):
-    if alcohol.iloc[j][1] in [777.0, 999.0]:
-        alcohol.iloc[j][1] == np.nan
-    
-# occupation
-for k in range(occupation.shape[0]):
-    if occupation.iloc[k][1] in [77.0, 99.0, 6.0]:
-        occupation.iloc[k][1] = np.nan
-    elif occupation.iloc[k][1] in [2.0, 3.0, 4.0]:
-        occupation.iloc[k][1] = 2.0
-    elif occupation.iloc[k][1] == 5.0:
-        occupation.iloc[k][1] = 3.0
-
-# dietary
-dietary = dietary.groupby('SEQN').sum()
-dietary.columns = [&quot;Tot_sugar&quot;, &quot;Tot_fat&quot;]
-dietary = dietary.reset_index()</code></pre>
-<pre class="r"><code># merge tables
-table = pd.merge(left=alcohol,right=demo, left_on='SEQN', right_on='SEQN')
-table = pd.merge(left=table,right=diabete, left_on='SEQN', right_on='SEQN')
-table = pd.merge(left=table,right=dietary, left_on='SEQN', right_on='SEQN')
-table = pd.merge(left=table,right=occupation, left_on='SEQN', right_on='SEQN')
-table = pd.merge(left=table,right=sleep, left_on='SEQN', right_on='SEQN')
-table = table.dropna()
-# 2087 rows left after removing nan</code></pre>
-<pre class="r"><code>import statistics as stats
-# center age, sleep hours, and tot_fat
-table['RIDAGEYR'] = table['RIDAGEYR'] - stats.mean(table['RIDAGEYR'])
-table['SLD012'] = table['SLD012'] - stats.mean(table['SLD012'])
-table['Tot_fat'] = table['Tot_fat'] - stats.mean(table['Tot_fat'])</code></pre>
-<pre class="r"><code># contingency table - gender
-pd.crosstab(table[&quot;DIQ010&quot;], table[&quot;RIAGENDR&quot;])</code></pre>
-<pre class="r"><code># contingency table - occupation
-pd.crosstab(table[&quot;DIQ010&quot;], table[&quot;OCQ260&quot;])</code></pre>
-<pre class="r"><code># Change numeric to dummy
-# handle multi-level categorical variable - OCQ260
-occ = pd.get_dummies(table['OCQ260'], prefix='OCQ260')
-gender = pd.get_dummies(table['RIAGENDR'], prefix='RIAGENDR')
-occ.columns = ['business', 'government', 'self-employee']
-gender.columns = ['male','female']
-cols_to_keep = ['ALQ130', &quot;RIDAGEYR&quot;,&quot;SLD012&quot;, &quot;Tot_sugar&quot;, &quot;Tot_fat&quot;]
-
-df_temp = table[cols_to_keep].join(occ.loc[: , 'government' : ])
-df_temp = df_temp.join(gender['female'])
-X = df_temp.iloc[:,:]
-# add intercept manually
-X['intercept'] = 1.0
-y = table['DIQ010']</code></pre>
-<pre class="r"><code>import statsmodels.api as sm
-logit_model=sm.Logit(y,X)
-result=logit_model.fit()
-print(result.summary())</code></pre>
 </div>
 <div id="stata" class="section level2">
 <h2>STATA</h2>
@@ -709,18 +633,6 @@ putexcel save</code></pre>
 <pre class="r"><code>res = read.csv(&quot;506project_res.csv&quot;, fileEncoding = &quot;UTF-16LE&quot;)
 knitr::kable(res, caption=&quot;Odds Ratios&quot;)</code></pre>
 </div>
-</div>
-<div id="additional-analysis" class="section level1">
-<h1>Additional Analysis</h1>
-<p>
-Agenda: show the distribution plots for the predicting variables
-</p>
-</div>
-<div id="results" class="section level1">
-<h1>Results</h1>
-<p>
-Agenda: present the result table and interpretate the coefficients
-</p>
 </div>
 
 
