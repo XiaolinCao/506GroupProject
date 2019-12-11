@@ -326,7 +326,10 @@ print(result.summary())
 
 
 ## STATA
+### Data Loading
 ```{r, eval = FALSE}
+* Title: This script analyzes the relationship between the prevalence of diabetes
+*        and dietary habits, demographic features and alcohol use.
 * Import and merge ------------------------------------------------------------
 pwd
 cd C:\Users\xiaolc\Downloads
@@ -390,7 +393,10 @@ merge 1:1 seqn using DIA_DEMO_ALC_NUTR_OCU.dta, generate(merge5)
 
 keep if merge5 == 3
 save dataset.dta, replace
+```
 
+### Data Processing
+```{r, eval = FALSE}
 rename sld012 sleep
 rename ocq260 occupation
 rename dr1tsugr tot_sugr
@@ -426,7 +432,10 @@ replace tot_fat = tot_fat - r(mean)
 
 summarize tot_sugr, meanonly
 replace tot_sugr = tot_sugr - r(mean)
+```
 
+### Model Fitting
+```{r, eval = FALSE}
 // fit the logistic model
 logit diabete age i.gender alcohol tot_fat tot_sugr i.occupation sleep, or
 matrix model = r(table)
