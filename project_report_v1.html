@@ -408,8 +408,8 @@ We have set some common rules for performing the data cleaning part. The respons
 <h1>Core Analysis</h1>
 <div id="r" class="section level2">
 <h2>R</h2>
-<pre class="r"><code>library(haven)
-# read in all the datasets
+<pre class="r"><code># read in all the datasets
+library(haven)
 files = c(&quot;ALQ_I.XPT&quot;, &quot;DEMO_I.XPT&quot;, &quot;DIQ_I.XPT&quot;, 
           &quot;DR1IFF_I.XPT&quot;, &quot;OCQ_I.XPT&quot;, &quot;SLQ_I.XPT&quot;, &quot;DR1TOT_I.XPT&quot;)
 das = list()
@@ -425,9 +425,8 @@ diabete = das[[3]]
 dietary = das[[4]]
 occupation = das[[5]]
 sleep = das[[6]]
-total_nutrient = das[[7]]
-
-# clean variables 
+total_nutrient = das[[7]]</code></pre>
+<pre class="r"><code># clean variables 
 library(tidyverse)
 alcohol = alcohol %&gt;% 
   select(SEQN, ALQ130)
@@ -466,9 +465,8 @@ df = left_join(sleep,
                                              by = &quot;SEQN&quot;), 
                                    by = &quot;SEQN&quot;), 
                          by = &quot;SEQN&quot;), 
-               by = &quot;SEQN&quot;)
-
-# delete missing values
+               by = &quot;SEQN&quot;)</code></pre>
+<pre class="r"><code># delete missing values
 missing = nrow(df) - nrow(df %&gt;% drop_na())
 cat(&quot;missing = &quot;, missing) # one third of the data is missing
 df = df %&gt;%
@@ -484,9 +482,9 @@ df = df %&gt;%
           OCQ260 = as.factor(OCQ260), 
           DIQ010 = as.factor(DIQ010), 
           RIAGENDR = as.factor(RIAGENDR))
-summary(df)
 
-# two-way contingency table
+summary(df)</code></pre>
+<pre class="r"><code># two-way contingency table
 xtabs(~DIQ010 + OCQ260, data = df)
 xtabs(~DIQ010 + RIAGENDR , data = df)
 # seems like occupation 1 has lower diabete percentage than 2 and 3
@@ -497,6 +495,100 @@ summary(fit)</code></pre>
 </div>
 <div id="python" class="section level2">
 <h2>Python</h2>
+<pre class="r"><code>import pandas as pd
+import os
+import numpy as np
+# read data and extract variables simultaneously
+xpt_files = [&quot;ALQ_I.XPT&quot;, &quot;DEMO_I.XPT&quot;, &quot;OCQ_I.XPT&quot;, &quot;DIQ_I.XPT&quot;, 
+             &quot;DR1IFF_I.XPT&quot;, &quot;SLQ_I.XPT&quot;, &quot;DR1TOT_I.XPT&quot;]
+base = &quot;&quot;
+vars = [[&quot;SEQN&quot;, &quot;ALQ130&quot;],
+        [&quot;SEQN&quot;, &quot;RIAGENDR&quot;, &quot;RIDAGEYR&quot;],
+        [&quot;SEQN&quot;, &quot;OCQ260&quot;],
+        [&quot;SEQN&quot;, &quot;DIQ010&quot;],
+        [&quot;SEQN&quot;, &quot;DR1ISUGR&quot;, &quot;DR1ITFAT&quot;],
+        [&quot;SEQN&quot;, &quot;SLD012&quot;],
+        [&quot;SEQN&quot;, &quot;DR1TSUGR&quot;, &quot;DR1TTFAT&quot;]
+    ]
+
+# STORE files in a list
+da = []
+for idf, fn in enumerate(xpt_files):
+    df = pd.read_sas(os.path.join(base, fn))
+    df = df.loc[:, vars[idf]]
+    da.append(df)
+    
+# label the datasets
+alcohol = da[0]
+demo = da[1]
+diabete = da[3]
+dietary = da[4]
+occupation = da[2]
+sleep = da[5]
+total_nutrient = da[6]</code></pre>
+<pre class="r"><code># data cleaning - missing, re-categorize,
+# diebete
+for i in range(diabete.shape[0]):
+    if diabete.iloc[i][1] == 2.0:
+        diabete.iloc[i][1] = int(0)
+    elif diabete.iloc[i][1] == 1.0:
+        diabete.iloc[i][1] = int(diabete.iloc[i][1])
+    else:
+        diabete.iloc[i][1] = np.nan
+        
+# alcohol
+for j in range(alcohol.shape[0]):
+    if alcohol.iloc[j][1] in [777.0, 999.0]:
+        alcohol.iloc[j][1] == np.nan
+    
+# occupation
+for k in range(occupation.shape[0]):
+    if occupation.iloc[k][1] in [77.0, 99.0, 6.0]:
+        occupation.iloc[k][1] = np.nan
+    elif occupation.iloc[k][1] in [2.0, 3.0, 4.0]:
+        occupation.iloc[k][1] = 2.0
+    elif occupation.iloc[k][1] == 5.0:
+        occupation.iloc[k][1] = 3.0
+
+# dietary
+dietary = dietary.groupby('SEQN').sum()
+dietary.columns = [&quot;Tot_sugar&quot;, &quot;Tot_fat&quot;]
+dietary = dietary.reset_index()</code></pre>
+<pre class="r"><code># merge tables
+table = pd.merge(left=alcohol,right=demo, left_on='SEQN', right_on='SEQN')
+table = pd.merge(left=table,right=diabete, left_on='SEQN', right_on='SEQN')
+table = pd.merge(left=table,right=dietary, left_on='SEQN', right_on='SEQN')
+table = pd.merge(left=table,right=occupation, left_on='SEQN', right_on='SEQN')
+table = pd.merge(left=table,right=sleep, left_on='SEQN', right_on='SEQN')
+table = table.dropna()
+# 2087 rows left after removing nan</code></pre>
+<pre class="r"><code>import statistics as stats
+# center age, sleep hours, and tot_fat
+table['RIDAGEYR'] = table['RIDAGEYR'] - stats.mean(table['RIDAGEYR'])
+table['SLD012'] = table['SLD012'] - stats.mean(table['SLD012'])
+table['Tot_fat'] = table['Tot_fat'] - stats.mean(table['Tot_fat'])</code></pre>
+<pre class="r"><code># contingency table - gender
+pd.crosstab(table[&quot;DIQ010&quot;], table[&quot;RIAGENDR&quot;])</code></pre>
+<pre class="r"><code># contingency table - occupation
+pd.crosstab(table[&quot;DIQ010&quot;], table[&quot;OCQ260&quot;])</code></pre>
+<pre class="r"><code># Change numeric to dummy
+# handle multi-level categorical variable - OCQ260
+occ = pd.get_dummies(table['OCQ260'], prefix='OCQ260')
+gender = pd.get_dummies(table['RIAGENDR'], prefix='RIAGENDR')
+occ.columns = ['business', 'government', 'self-employee']
+gender.columns = ['male','female']
+cols_to_keep = ['ALQ130', &quot;RIDAGEYR&quot;,&quot;SLD012&quot;, &quot;Tot_sugar&quot;, &quot;Tot_fat&quot;]
+
+df_temp = table[cols_to_keep].join(occ.loc[: , 'government' : ])
+df_temp = df_temp.join(gender['female'])
+X = df_temp.iloc[:,:]
+# add intercept manually
+X['intercept'] = 1.0
+y = table['DIQ010']</code></pre>
+<pre class="r"><code>import statsmodels.api as sm
+logit_model=sm.Logit(y,X)
+result=logit_model.fit()
+print(result.summary())</code></pre>
 </div>
 <div id="stata" class="section level2">
 <h2>STATA</h2>
@@ -617,6 +709,18 @@ putexcel save</code></pre>
 <pre class="r"><code>res = read.csv(&quot;506project_res.csv&quot;, fileEncoding = &quot;UTF-16LE&quot;)
 knitr::kable(res, caption=&quot;Odds Ratios&quot;)</code></pre>
 </div>
+</div>
+<div id="additional-analysis" class="section level1">
+<h1>Additional Analysis</h1>
+<p>
+Agenda: show the distribution plots for the predicting variables
+</p>
+</div>
+<div id="results" class="section level1">
+<h1>Results</h1>
+<p>
+Agenda: present the result table and interpretate the coefficients
+</p>
 </div>
 
 

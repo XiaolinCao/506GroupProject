@@ -4,6 +4,7 @@
 
 Group 11 <br />
 
+
 Members: **Xiaolin Cao** - *Stata*, **Yinuo Chen** - *R*, **Zheng Jing** - *Python*<br />
 
 
@@ -116,4 +117,10 @@ Our group uses three kinds of tools to carry out the core analysis: R, python an
 ## References:
 
 1. Faraway, Julian J. *Extending the linear model with R: generalized linear, mixed effects and nonparametric regression models*. Chapman and Hall/CRC, 2016.
+
+=======
+Work distribution: *R - Yinuo Chen; Python - Zheng Jing; Stata - Xiaolin Cao* <br />
+Question: In terms of demographic features, alcohol use and dietary habits, what features are most associated with the prevalence of diabetes? <br />
+## Methodology
+We first created a few contingency tables for each predictor and the response, and then fit a logistic regression using diabete as the response varaible and all the others as the predictor, without any interaction terms or transformations. 
 
