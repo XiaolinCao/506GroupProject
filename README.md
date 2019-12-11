@@ -112,7 +112,7 @@ Our group uses three kinds of tools to carry out the core analysis: R, python an
 
    (1) Data visualization
 
-## Group Collaboration
+## Group Collaboration:
 Although we have been working in different programming environments, we peer reviewed each other's script. Firstly, Xiaolin incorrectly used the individual food dataset as the total nutrient data, which would result in multiple rows with the same SEQN. Secondly, Yinuo forgot to recode the diabetes from (1,2) to (1,0), which would lead to the wrong sign of the coefficients in the logistic output. Thirdly, we forgot to center the numeric variable, which would make interpretation of intercepts difficult. Fourthly, Zheng forgot to remove the meaningless values such as "999" and ”777" for alcohol. Fifthly, in python code, the categorical variables need to be manually added to the design matrix before running the logistic regression. Lastly, the old alcohol variable is not appropriate (ALQ110). Therefore we use "ALQ130" instead and it represents the average alcoholic drink per day. We did all of these offline during group meeting. 
 
 
