@@ -1,6 +1,6 @@
 ---
 title: "506 Group Project: Diabetes"
-author: "Yinuo Chen"
+author: "Group 11: Xiaolin Cao, Yinuo Chen, Zheng Jing"
 date: "2019/12/5"
 output: html_document
 ---
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Introduction
 
 <p> 
-  According to the survey from American Diabetes Association, more than 30 million      Americans have diabetes and around 84 million Americans have pre-diabetes. The health care costs of diagnosed diabetes are 327 billion per year according to the 2017 statistics. Compared with those without diabetes, people with diabetes are spending 2.3 times more on their medical expenditure. With National Health and Nutrition Examination Survey on hand, our group are interested in exploring the prevalence of diabetes in terms of demographic features, dietary habits and alcohol use. 
+  According to the survey from American Diabetes Association, more than 30 million      Americans have diabetes and around 84 million Americans have pre-diabetes. The health care costs of diagnosed diabetes are 327 billion per year according to the 2017 statistics. Compared with those without diabetes, people with diabetes are spending 2.3 times more on their medical expenditure. This gap is striking. With National Health and Nutrition Examination Survey on hand, our group are interested in exploring the prevalence of diabetes in terms of demographic features, dietary habits and alcohol use. 
 </p>
 
 <p> 
@@ -21,17 +21,21 @@ knitr::opts_chunk$set(echo = TRUE)
 </p>
 
 # Data
-* reponse variable: DIQ010 (<em>Doctor told you have diabetes</em>), Dataset: DIQ_I.XPT (<em>Diabetes 2015 - 2016</em>)
-* predicting variables:
-    + RIAGENDER (<em>Gender</em>), Dataset: DEMO_I.XPT (<em>Demographic Variables and Sample Weights 2015 - 2016</em>)
-    + RIDAGEYR (<em>Age in years at screening</em>), Dataset: DEMO_I.XPT (<em>Demographic Variables and Sample Weights 2015 - 2016</em>)
-    + ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>), Dataset: ALQ_I.XPT (<em>Alcohol Use 2015 - 2016</em>)
-    + DR1ISUGR (<em>Total sugars (gm)</em>), Dataset: DR1IFF_I.XPT  (<em>Dietary Interview Individual Foods, First Day 2015 - 2016</em>)
-    + DR1ITFAT (<em>Total fat (gm)</em>), Dataset: DR1IFF_I.XPT  (<em>Dietary Interview Individual Foods, First Day 2015 - 2016</em>)
-    + DR1TSUGR (<em>Total sugars (gm)</em>), Dataset: DR1TOT_I.XPT (<em>Dietary Interview Total Nutrients Intakes, First Day 2015 - 2016</em>)
-    + DR1TTFAT (<em>Total fat (gm)</em>), Dataset: DR1TOT_I.XPT (<em>Dietary Interview Total Nutrients Intakes, First Day 2015 - 2016</em>)
-    + OCQ260 (<em>Description of job/work situation</em>), Dataset: OCQ_I.XPT (<em>Occupation 2015 - 2016</em>)
-    + SLD012 (<em>Sleep hours</em>), Dataset: SLQ_I.XPT (<em>Sleep Disorders 2015 - 2016</em>)
+### response variable
+| Variable | Description                   | Data Type        | Dataset   |
+| -------- | ----------------------------- | ---------------- | --------- |
+| DIQ010   | Doctor told you have diabetes | Categorical. 0/1 | DIQ_I.XPT |
+
+### predicting variables
+| Variable  | Description                                         |         Data Type         | Dataset      |
+| --------- | --------------------------------------------------- | :-----------------------: | ------------ |
+| RIAGENDER | Gender(1: male;  2: female)                         |     Categorical. 1/2      | DEMO_I.XPT   |
+| RIDAGEYR  | Age in years at screening                           | Positive Integer. [18,80] | DEMO_I.XPT   |
+| ALQ130    | Average alcoholic drinks/day  in the past 12 months | Positive Integer. [0,15]  | ALQ_I.XPT    |
+| DR1TSUGR  | Total sugar (gm)                                    |  Double. [0.33, 533.44]   | DR1TOT_I.XPT |
+| DR1TTFAT  | Total fat (gm)                                      |  Double. [3.54, 498.63]   | DR1TOT_I.XPT |
+| OCQ260    | Description of job/work situation                   |    Categorical. 1/2/3     | OCQ_I.XPT    |
+| SLD012    | Sleep hours                                         |    Double. [3.0, 2.0]     | SLQ_I.XPT    |
 
 # Methods
 <p>
@@ -404,6 +408,19 @@ replace occupation = 3 if occupation == 5
 generate missing = 0
 replace missing = 1 if (seqn == . | diabete == 3 | diabete == 7 | diabete == 9 | diabete == . | age == . | gender == . | alcohol == 777 | alcohol == 999 | alcohol == . | tot_fat == . | tot_sugr == . | occupation == 6 | occupation == 77 | occupation == 99 | occupation == . | sleep == .)
 drop if missing == 1
+
+// center age, sleep, total fat and total sugar
+summarize age, meanonly
+replace age = age - r(mean)
+
+summarize sleep, meanonly
+replace sleep = sleep - r(mean)
+
+summarize tot_fat, meanonly
+replace tot_fat = tot_fat - r(mean)
+
+summarize tot_sugr, meanonly
+replace tot_sugr = tot_sugr - r(mean)
 
 // fit the logistic model
 logit diabete age i.gender alcohol tot_fat tot_sugr i.occupation sleep, or
