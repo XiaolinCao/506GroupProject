@@ -1,7 +1,7 @@
 ---
 title: "506 Group Project: Diabetes"
 author: "Group 11: Xiaolin Cao, Yinuo Chen, Zheng Jing"
-date: "2019/12/5"
+date: "2019/12/11"
 output: html_document
 ---
 
@@ -21,12 +21,12 @@ knitr::opts_chunk$set(echo = TRUE)
 </p>
 
 # Data
-### response variable
+### Response variable
 | Variable | Description                   | Data Type        | Dataset   |
 | -------- | ----------------------------- | ---------------- | --------- |
 | DIQ010   | Doctor told you have diabetes | Categorical. 0/1 | DIQ_I.XPT |
 
-### predicting variables
+### Predicting variables
 | Variable  | Description                                         |         Data Type         | Dataset      |
 | --------- | --------------------------------------------------- | :-----------------------: | ------------ |
 | RIAGENDER | Gender(1: male;  2: female)                         |     Categorical. 1/2      | DEMO_I.XPT   |
@@ -43,7 +43,8 @@ knitr::opts_chunk$set(echo = TRUE)
 </p>
 
 <p>
-  We have set some common rules for performing the data cleaning part. The response variable DIQ010 should be coded as 1: <em>Yes</em> and 0: <em>No</em> and should be treated as a categorical variable. RIAGENDER (<em>Gender</em>) should be coded as 1: <em>Males</em> and 2: <em>Female</em> and should be treated as categorical variable. ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>) should range from 1 to 15. The use of two datasets DR1IFF_I.XPT and DR1TOT_I.XPT is to confirm the measurement accuracy of total sugar intake and total fat intake. OCQ260 (<em>Description of job/work situation</em>) should be recoded as 1: <em>private business employee</em>, 2: <em>government employee</em> and 3: <em>self-employed</em> and should be treated as a categorical variable.
+  We have set some common rules for performing the data cleaning part.      
+  The response variable DIQ010 should be coded as 1: <em>Yes</em> and 0: <em>No</em> and should be treated as a categorical variable. RIAGENDER (<em>Gender</em>) should be coded as 1: <em>Males</em> and 2: <em>Female</em> and should be treated as categorical variable. ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>) should range from 1 to 15. The use of two datasets DR1IFF_I.XPT and DR1TOT_I.XPT is to confirm the measurement accuracy of total sugar intake and total fat intake. OCQ260 (<em>Description of job/work situation</em>) should be recoded as 1: <em>private business employee</em>, 2: <em>government employee</em> and 3: <em>self-employed</em> and should be treated as a categorical variable.
 </p>
 
 </p>
@@ -67,42 +68,38 @@ p = P(Y = 1) = \tfrac{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}{e^{\beta_0 + \su
 $$
 
 </p>
-
-
-# File description & Collaboration
-
-Our group uses three kinds of tools to carry out the core analysis: R, python and Stata.
-
-1. .R file: Using R to clean data and fit model. Basically Wrote by Yinuo Chen, reviewed by other 2 group members
-2. .do file: Using Stata to clean data and fit model.  Basically Wrote by Xiaolin Cao, reviewed by other 2 group members
-3. .ipynb file: Using python to clean data and fit model. Basically wrote by Zheng Jing, reviewed by other 2 group members.
-4. .Rmd file: Describe data, summarize model and interpret model conclusion. All of us work on it.
-5. .html file: knit the .Rmd file and create a html file.
-
+<p>
+In our project, to get a basic idea about relationship between the response and some predictors, we first create a few contingency tables for each categorical predictor and the response.</p>
+<p>
+Then we fit a logistic regression using diabetes as the response variable and all the others as predictors, without any interaction terms or transformations</p>
 
 # Core Analysis {.tabset .tabset-fade}
 
 ## R
-```{r, eval = FALSE}
+### Data loading
+```{r}
 # data: ------------------------------------------------------------------------
 library(SASxport)
-# path = "H:/Personal/STATS506/project"
+path = "H:/Personal/STATS506/project"
 files = list.files(path, pattern = "*.XPT", full.names = T)
 dataset = sapply(files, read.xport, simplify = FALSE)
 
 
 # rename data
-names = c("alcohol", "demo", "diabete", "total_nutri", 
+names = c("alcohol", "demo", "diabetes", "total_nutri", 
           "occupation", "sleep")
 names(dataset) = names
+```
 
+### Variables selecting
+```{r}
 # clean up key variables used in this problem: ---------------------------------
 library(data.table)
 # select all key variables
 ds1 = as.data.table(dataset$alcohol)[,.(SEQN, alcohol = ALQ130)]
 ds2 = as.data.table(dataset$demo)[,.(SEQN, gender = RIAGENDR, age = RIDAGEYR)]
 ds3 = as.data.table(dataset$diabete)[,.(SEQN, 
-                                        diabete = ifelse(DIQ010 == 2, 0, DIQ010))]
+                                        diabetes = ifelse(DIQ010 == 2, 0, DIQ010))]
 ds4 = as.data.table(dataset$total_nutri)[,.(SEQN, 
                                             tot_sugar = DR1TSUGR, 
                                             tot_fat = DR1TTFAT)]
@@ -113,89 +110,97 @@ ds6 = as.data.table(dataset$sleep)[,.(SEQN, sleep = SLD012)]
 
 # merge all datasets
 DS = Reduce(merge,list(ds1,ds2,ds3,ds4,ds5,ds6))
+```
 
-
+### Data cleaning
+```{r}
 # remove missing values and unqualified values: --------------------------------
-DS = na.omit(DS)[diabete %in% c(0,1),
+DS = na.omit(DS)[diabetes %in% c(0,1),
                   ][!(alcohol %in% c(777,999)),
                     ][!(occupation %in% c(6, 77, 99)),
                       ][occupation %in% c(2,3,4), occupation := 2
                         ][occupation == 5, occupation := 3
                           ][
                             , `:=`(occupation = as.factor(occupation),
-                                   diabete = as.factor(diabete),
+                                   diabetes = as.factor(diabetes),
                                    gender = as.factor(gender))
-                          ][, -c("SEQN"), with = FALSE]
-
+                          ][, -c("SEQN"), with = FALSE
+                            ][, `:=`(age = age - mean(age),
+                                   tot_sugar = tot_sugar - mean(tot_sugar),
+                                   tot_fat = tot_fat - mean(tot_fat),
+                                   sleep = sleep - mean(sleep))]
 summary(DS)
+
 ```
 
+```{r, echo=FALSE}
+knitr::kable(DS[1:10], caption = "The first 10 rows of final data ")
+```
 
-```{r, eval = FALSE}
+After data cleaning, we got a dataset with 2017 observations.
+
+### Two-way contingency table
+```{r}
 # preliminary exploration: -----------------------------------------------------
 # two-way contingency table
-table(DS$diabete, DS$occupation)
-table(DS$diabete, DS$gender)
+table(DS$diabetes, DS$occupation)
+table(DS$diabetes, DS$gender)
 
 # table using proportions:
 # prop.table(table(DS$diabete, DS$occupation))
 # prop.table(table(DS$diabete, DS$gender))
 
-# It seems like that occupation 1 has the lowest diabete percentage and 
-# occupation 3 has the highest diabete percentage.
-#
-# From the diabete percetage, men are more likely to get diabetes than women.
+```
+It seems like that occupation 1 has the lowest diabete percentage and occupation 3 has the highest diabete percentage.     
+From the diabete percetage, men are more likely to get diabetes than women.
 
-
+### Logistic model
+```{r}
 # logistic model: --------------------------------------------------------------
 # training
 
-fit = glm(diabete ~ ., data = DS, family = "binomial")
+fit = glm(diabetes ~ ., data = DS, family = "binomial")
 summary(fit)
 ```
+We can see from the result that age, total sugar and total fat are significant to this model.     
+Then do some additional analysis.
 
-
-```{r, eval = FALSE}
+### Data visualization and additional analysis
+```{r}
 # plots: ------------------------------------------------------------------------
 # graphs: 
 # 1. plot the fraction of respondents who have diabete against their age
 # 2. plot the fraction of all respondents against their age
-# 3. plot the fraction of respondents who have diabete against their age
-# 4. plot the fraction of all respondents against their age
-# 5. plot the fraction of respondents who have diabete against their age
-# 6. plot the fraction of all respondents against their age
+# 3. plot the fraction of respondents who have diabete against their sleep hours
+# 4. plot the fraction of all respondents against their hours
+# 5. plot the fraction of respondents who have diabete against their total sugar
+# 6. plot the fraction of all respondents against their total sugar
 
-diabete_1 = DS[diabete == '1']
-hist(diabete_1$age, main = "* Graph 1: AGE pattern in diabetes *",
+diabetes_1 = DS[diabetes == '1']
+hist(diabetes_1$age, main = "* Graph 1: AGE pattern in diabetes *",
      xlab="age", las = 1 )
 hist(DS$age, main = "* Graph 2: AGE pattern in all respondents *",
      xlab="age", las = 1 )
 
 
 
-hist(diabete_1$sleep, main = "* Graph 3: SLEEP pattern in diabetes *",
+hist(diabetes_1$sleep, main = "* Graph 3: SLEEP pattern in diabetes *",
      xlab="sleep", las = 1  )
 hist(DS$sleep, main = "* Graph 4: SLEEP pattern in all respondents *",
      xlab="sleep", las = 1 )
-# The above two plots prove that sleeping hours has little to do with diabetes, 
-# because the distribution of both look very similar.
 
 
-# We can see from the result that the coefficient of sugar is negative, 
-# which contradicts our intuition that more sugar intake 
-# increases the probability of developing diabete.
-# 
-# Maybe genetic effect is much more important than the amount of sugar intake. 
-# Since people who have family diabete history 
-# are likely to be more carefull about sugar intake.
-
-hist(diabete_1$tot_sugar, main = "* Graph 5: SUGAR pattern in diabetes *",
+hist(diabetes_1$tot_sugar, main = "* Graph 5: SUGAR pattern in diabetes *",
      xlab="sugar", las = 1  )
 hist(DS$tot_sugar, main = "* Graph 6: SUGAR pattern in all respondents *",
      xlab="sugar", las = 1 )
 
 ```
+<p>
+Graph 2 and 3 prove that sleeping hours has little to do with diabetes, because the distribution of both look very similar. And that is also corresponding to our model result.</p>
 
+
+We can see from the model result that the coefficient of sugar is negative, which contradicts our intuition that more sugar intake increases the probability of developing diabete. So maybe genetic effect is much more important than the amount of sugar intake. Since people who have family diabete history are likely to be more carefull about sugar intake.
 
 ## Python
 ```{r, eval = FALSE}
@@ -459,8 +464,12 @@ knitr::kable(res, caption="Odds Ratios")
 
 #
 
+## Summary
+
+
+
 ## References
 
 1. Faraway, Julian J. *Extending the linear model with R: generalized linear, mixed effects and nonparametric regression models*. Chapman and Hall/CRC, 2016.
-
+2. 1995 - 2019. American Diabetes Association. <https://www.diabetes.org/>
 
