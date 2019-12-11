@@ -112,15 +112,14 @@ Our group uses three kinds of tools to carry out the core analysis: R, python an
 
    (1) Data visualization
 
+## Group Collaboration:
+Although we have been working in different programming environments, we peer reviewed each other's script. Firstly, Xiaolin incorrectly used the individual food dataset as the total nutrient data, which would result in multiple rows with the same SEQN. Secondly, Yinuo forgot to recode the diabetes from (1,2) to (1,0), which would lead to the wrong sign of the coefficients in the logistic output. Thirdly, we forgot to center the numeric variable, which would make interpretation of intercepts difficult. Fourthly, Zheng forgot to remove the meaningless values such as "999" and ”777" for alcohol. Fifthly, in python code, the categorical variables need to be manually added to the design matrix before running the logistic regression. Lastly, the old alcohol variable is not appropriate (ALQ110). Therefore we use "ALQ130" instead and it represents the average alcoholic drink per day. We did all of these offline during group meeting. 
+
 
 
 ## References:
 
 1. Faraway, Julian J. *Extending the linear model with R: generalized linear, mixed effects and nonparametric regression models*. Chapman and Hall/CRC, 2016.
 
-=======
-Work distribution: *R - Yinuo Chen; Python - Zheng Jing; Stata - Xiaolin Cao* <br />
-Question: In terms of demographic features, alcohol use and dietary habits, what features are most associated with the prevalence of diabetes? <br />
-## Methodology
-We first created a few contingency tables for each predictor and the response, and then fit a logistic regression using diabete as the response varaible and all the others as the predictor, without any interaction terms or transformations. 
+
 
