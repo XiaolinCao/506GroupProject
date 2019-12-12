@@ -2,7 +2,10 @@
 title: "506 Group Project: Diabetes"
 author: "Group 11: Xiaolin Cao, Yinuo Chen, Zheng Jing"
 date: "2019/12/11"
-output: html_document
+output:
+  html_document: 
+    theme: journal
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -13,14 +16,20 @@ knitr::opts_chunk$set(echo = TRUE)
 # Introduction
 
 <p> 
-  According to the survey from American Diabetes Association, more than 30 million      Americans have diabetes and around 84 million Americans have pre-diabetes. The health care costs of diagnosed diabetes are 327 billion per year according to the 2017 statistics. Compared with those without diabetes, people with diabetes are spending 2.3 times more on their medical expenditure. This gap is striking. With National Health and Nutrition Examination Survey on hand, our group are interested in exploring the prevalence of diabetes in terms of demographic features, dietary habits and alcohol use. 
+  According to the survey from American Diabetes Association, more than 30 million Americans have diabetes and around 84 million Americans have pre-diabetes. The health care costs of diagnosed diabetes are 327 billion per year according to the 2017 statistics. Compared with those without diabetes, people with diabetes are spending 2.3 times more on their medical expenditure. This gap is striking. With National Health and Nutrition Examination Survey on hand, our group are interested in exploring the prevalence of diabetes in terms of demographic features, dietary habits and alcohol use. 
 </p>
-
+So our question is:
+<p> 
+**In terms of demographic features, alcohol use and dietary habits, what features are most associated with the prevalence of diabetes?**     
+</p>
 <p> 
   In the end of our analysis, we will show how gender, age, nutrient, occupation, alcohol use and sleep quality are associated with the probability of being diagnosed with diabetes. By comparing respective odds ratios, we will come to a conclusion that describes which population are more subject to diabetes. 
 </p>
 
 # Data
+
+Here we use survey data in the 2015 - 2016 cycle using [NHANES](https://wwwn.cdc.gov/nchs/nhanes/continuousnhanes/default.aspx) data.  
+
 ### Response variable
 | Variable | Description                   | Data Type        | Dataset   |
 | -------- | ----------------------------- | ---------------- | --------- |
@@ -38,14 +47,6 @@ knitr::opts_chunk$set(echo = TRUE)
 | SLD012    | Sleep hours                                         |    Double. [3.0, 2.0]     | SLQ_I.XPT    |
 
 # Methods
-<p>
-  We preprocessed and cleaned all the variables beforehand. The rows with missing values are removed and some variables are recoded for consistency. After the data preprocessing step, we fit the dataset with logistic regression. We carried out the above procedures in R, python and STATA. 
-</p>
-
-<p>
-  We have set some common rules for performing the data cleaning part.      
-  The response variable DIQ010 should be coded as 1: <em>Yes</em> and 0: <em>No</em> and should be treated as a categorical variable. RIAGENDER (<em>Gender</em>) should be coded as 1: <em>Males</em> and 2: <em>Female</em> and should be treated as categorical variable. ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>) should range from 1 to 15. The use of two datasets DR1IFF_I.XPT and DR1TOT_I.XPT is to confirm the measurement accuracy of total sugar intake and total fat intake. OCQ260 (<em>Description of job/work situation</em>) should be recoded as 1: <em>private business employee</em>, 2: <em>government employee</em> and 3: <em>self-employed</em> and should be treated as a categorical variable.
-</p>
 
 </p>
 In statistics, the logistic model is used to model the probability of a certain class, such as pass/fail, win/lose, alive/dead or healthy/sick. 
@@ -68,10 +69,14 @@ p = P(Y = 1) = \tfrac{e^{\beta_0 + \sum_{i=1}^{n}\beta_iX_{i}}}{e^{\beta_0 + \su
 $$
 
 </p>
+
+
 <p>
-In our project, to get a basic idea about relationship between the response and some predictors, we first create a few contingency tables for each categorical predictor and the response.</p>
+  We have set some common rules for performing the data cleaning part. The response variable DIQ010 should be coded as 1: <em>Yes</em> and 0: <em>No</em> and should be treated as a categorical variable. RIAGENDER (<em>Gender</em>) should be coded as 1: <em>Males</em> and 2: <em>Female</em> and should be treated as categorical variable. ALQ130 (<em>Avg # alcoholic drinks/day past 12 mons</em>) should range from 1 to 15. The use of two datasets DR1IFF_I.XPT and DR1TOT_I.XPT is to confirm the measurement accuracy of total sugar intake and total fat intake. OCQ260 (<em>Description of job/work situation</em>) should be recoded as 1: <em>private business employee</em>, 2: <em>government employee</em> and 3: <em>self-employed</em> and should be treated as a categorical variable.
+</p>
 <p>
-Then we fit a logistic regression using diabetes as the response variable and all the others as predictors, without any interaction terms or transformations</p>
+  Then we preprocessed and cleaned all the variables. The rows with missing values are removed and some variables are recoded for consistency. After the data preprocessing step, to get a basic idea about relationship between the response and some predictors, we first create a few contingency tables for each categorical predictor and the response. Then we fit the dataset with logistic regression using diabetes as the response variable and all the others as predictors, without any interaction terms or transformations. We carried out the above procedures in R, python and STATA. 
+</p>
 
 # Core Analysis {.tabset .tabset-fade}
 
@@ -203,6 +208,7 @@ Graph 2 and 3 prove that sleeping hours has little to do with diabetes, because 
 We can see from the model result that the coefficient of sugar is negative, which contradicts our intuition that more sugar intake increases the probability of developing diabete. So maybe genetic effect is much more important than the amount of sugar intake. Since people who have family diabete history are likely to be more carefull about sugar intake.
 
 ## Python
+### Load data & select variables
 ```{r, eval = FALSE}
 import pandas as pd
 import os
@@ -237,6 +243,8 @@ sleep = da[5]
 total_nutrient = da[6]
 ```
 
+
+### Data preparation
 ```{r, eval = FALSE}
 # data cleaning - missing, re-categorize,
 # diebete
@@ -268,6 +276,7 @@ dietary.columns = ["Tot_sugar", "Tot_fat"]
 dietary = dietary.reset_index()
 ```
 
+### Merge all datasets
 ```{r, eval = FALSE}
 # merge tables
 table = pd.merge(left=alcohol,right=demo, left_on='SEQN', right_on='SEQN')
@@ -279,6 +288,8 @@ table = table.dropna()
 # 2087 rows left after removing nan
 ```
 
+
+### Center age, sleep hours and tot_fat
 ```{r, eval = FALSE}
 import statistics as stats
 # center age, sleep hours, and tot_fat
@@ -287,6 +298,9 @@ table['SLD012'] = table['SLD012'] - stats.mean(table['SLD012'])
 table['Tot_fat'] = table['Tot_fat'] - stats.mean(table['Tot_fat'])
 ```
 
+### Two-way contingency table
+- Diabete vs Gender
+- Diabete vs Occupation
 ```{r, eval = FALSE}
 # contingency table - gender
 pd.crosstab(table["DIQ010"], table["RIAGENDR"])
@@ -315,6 +329,7 @@ X['intercept'] = 1.0
 y = table['DIQ010']
 ```
 
+### Fit logistic model
 ```{r, eval = FALSE}
 import statsmodels.api as sm
 logit_model=sm.Logit(y,X)
@@ -323,7 +338,13 @@ print(result.summary())
 ```
 
 
-
+<style>
+pre {
+  white-space: pre !important;
+  overflow-y: scroll !important;
+  max-height: 35vh !important;
+}
+</style>
 
 ## STATA
 ### Data Loading
@@ -465,20 +486,37 @@ putexcel B2 = matrix(final_model)
 putexcel save
 ```
 
-```{r, eval=FALSE}
-res = read.csv("506project_res.csv", fileEncoding = "UTF-16LE")
-knitr::kable(res, caption="Odds Ratios")
+```{r, echo=FALSE}
+dat = matrix(c(1.059,	0.007,	1.046,	1.072,
+               0.882,	0.155,	0.625,	1.244,
+               0.957,	0.043,	0.877,	1.044,
+               1.004,	0.002,	1,	1.007,
+               0.995,	0.001,	0.993,	0.998,
+               0.979,	0.22,	0.63,	1.522,
+               1.099,	0.259,	0.692,	1.745,
+               0.954,	0.062,	0.84,	1.083), nrow = 8, byrow = TRUE)
+colnames(dat) = c("est", "se", "lwr", "upr")
+rownames(dat) = c("age", "2.gender", "alcohol", "tot_fat", "tot_sugr", "2.occupation", "3.occupation", "sleep")
+
+knitr::kable(dat, caption="Odds Ratios")
 ```
 
 
-#
-
-## Summary
 
 
+# Summary
+From the regression outputs, we observe that age, total sugar intake, and total fat intake are most associated with the prevalence of diabetes. Whereas gender, sleep hours, occupation (government, self-employee, business), and alcohol intake are not significant predictors. In particular, the diabetes are more prevalent in the group of elder people, and in the group of people who ingest more fat and less sugar.     
+The odds ratio for age is 1.059. It means that with one unit increase in age, the odd of being diagnosed with diabetes will increase by a factor of 1.059. The odds ratio for total fat is 1.004. It means that with one unit increase in total fat intake, the odd of diagnosis will increase by a factor of 1.004. The odds ratio for total sugar is 0.995. It means that with one unit increase in total sugar intake, the odd of diagnosis will decrease by a factor of 0.995.      
 
-## References
+# Discussion(To be improved)
+1. Variable selection: There may be other variables in other datasets that may have stronger associations with the prevalence of diabetes. Due to the limited time, we were not able to explore as many datasets/variables as we wanted.
+2. Model selection: In addition to the logistic regression, there may exist other models that also fit the data well such as lasso or ridge regression. If possible, we could try these models.
+3. We can improve the model performance by adding interaction terms (two-way or three-way).
+4. Our goal was to explore the data and do the inference. But beyond that we are also interested in prediction. For doing so we can split dataset into training and testing sets and use MSE to evaluate our model.
+
+
+# References
 
 1. Faraway, Julian J. *Extending the linear model with R: generalized linear, mixed effects and nonparametric regression models*. Chapman and Hall/CRC, 2016.
-2. 1995 - 2019. American Diabetes Association. <https://www.diabetes.org/>
+2. [American Diabetes Association](https://www.diabetes.org/), 1995 - 2019.
 

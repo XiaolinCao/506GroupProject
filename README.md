@@ -75,8 +75,9 @@ Our group uses three kinds of tools to carry out the core analysis: R, python an
 2. 506project.R file: a R script uses data.table to clean data and use "stats" package and glm function to fit model. 
 3. 506project.do file: a Stata script uses Stata to clean data and fit model. 
 4. 506project.ipynb file: a jupyter notebook uses python to clean data and fit model. 
-5. project_report.Rmd file: a Rmarkdown file includes data describing, code of three tools and result analysis. This file is our final group project report.
-6. project_report.html file: a html file by knitting the project_report.Rmd file to better present our group project.
+5. python_output.html file: the output of 506project.ipynb file.
+6. project_report.Rmd file: a Rmarkdown file includes data describing, code of three tools and result analysis. This file is our final group project report.
+7. project_report.html file: a html file by knitting the project_report.Rmd file to better present our group project.
 
 
 
@@ -110,16 +111,34 @@ Our group uses three kinds of tools to carry out the core analysis: R, python an
 
 4. Other things can be improved:
 
-   (1) Data visualization
+   (1) Variable selection: There may be other variables in other datasets that may have stronger associations with the prevalence of diabetes. Due to the limited time, we were not able to explore as many datasets/variables as we wanted.
+
+   (2) Model selection: In addition to the logistic regression, there may exist other models that also fit the data well such as lasso or ridge regression. If possible, we could try these models.
+
+   (3) We can improve the model performance by adding interaction terms (two-way or three-way).
+
+   (4) Our goal was to explore the data and do the inference. But beyond that we are also interested in prediction. For doing so we can split dataset into training and testing sets and use MSE to evaluate our model.
+
 
 ## Group Collaboration:
-Although we have been working in different programming environments, we peer reviewed each other's script. Firstly, Xiaolin incorrectly used the individual food dataset as the total nutrient data, which would result in multiple rows with the same SEQN. Secondly, Yinuo forgot to recode the diabetes from (1,2) to (1,0), which would lead to the wrong sign of the coefficients in the logistic output. Thirdly, we forgot to center the numeric variable, which would make interpretation of intercepts difficult. Fourthly, Zheng forgot to remove the meaningless values such as "999" and ”777" for alcohol. Fifthly, in python code, the categorical variables need to be manually added to the design matrix before running the logistic regression. Lastly, the old alcohol variable is not appropriate (ALQ110). Therefore we use "ALQ130" instead and it represents the average alcoholic drink per day. We did all of these offline during group meeting. 
+Although we have been working in different programming environments, we peer reviewed each other's script and we had some group meeting to discuss some problems. Here are some points:
+
+1.  In Stata, we first incorrectly used the individual food dataset as the total nutrient data, which would result in multiple rows with the same SEQN.
+
+2.  In R, we first recoded the diabetes from (1,2) to (1,0), which would lead to the wrong sign of the coefficients in the logistic output. 
+
+3.  We forgot to center the continuous variable, which would make interpretation of intercepts difficult. In logistic regression, we always need to center predictors. 
+
+4.  In python, we forgot to remove the meaningless values such as "999" and ”777" for alcohol. 
+
+5.  In python, the categorical variables need to be manually added to the design matrix before running the logistic regression. 
+
+6.  The old alcohol variable is not appropriate (ALQ110). Therefore we use "ALQ130" instead and it represents the average alcoholic drink per day. 
 
 
 
 ## References:
 
 1. Faraway, Julian J. *Extending the linear model with R: generalized linear, mixed effects and nonparametric regression models*. Chapman and Hall/CRC, 2016.
-
-
+2. [American Diabetes Association](https://www.diabetes.org/), 1995 - 2019.
 
